@@ -37,8 +37,10 @@ _TRANSITION_VERB = {
 }
 
 
-def _usgs_event_url(source_id: str) -> str:
-    return f"https://earthquake.usgs.gov/earthquakes/eventpage/{source_id}"
+def _event_url(rec: SourceRecord) -> str:
+    if rec.source == "gdacs":
+        return f"https://www.gdacs.org/report.aspx?eventid={rec.source_id}"
+    return f"https://earthquake.usgs.gov/earthquakes/eventpage/{rec.source_id}"
 
 
 def format_message(
@@ -52,8 +54,12 @@ def format_message(
         lines.append(f"Magnitude: M{rec.mag:.1f}")
     if rec.place:
         lines.append(f"Location: {rec.place}")
+    if event.country:
+        lines.append(f"Country: {event.country}")
     if rec.pager:
         lines.append(f"PAGER: {rec.pager.upper()}")
+    elif rec.source == "gdacs":
+        lines.append(f"GDACS: {level.label}")
     elif level is AlertLevel.PROVISIONAL:
         lines.append("Impact: unassessed (awaiting PAGER/GDACS)")
     if rec.depth_km is not None:
@@ -61,7 +67,7 @@ def format_message(
     if transition is Transition.RETRACTION:
         lines.append("⚠️ Prior alert retracted — see event page.")
 
-    lines.append(_usgs_event_url(rec.source_id))
+    lines.append(_event_url(rec))
     return "\n".join(lines)
 
 

@@ -42,9 +42,13 @@ class Config:
     dry_run: bool
     usgs_feed_url: str
     usgs_poll_seconds: int
+    gdacs_feed_url: str
+    gdacs_poll_seconds: int
     provisional_mag_min: float
     coalesce_minutes: int
     backfill_hours: int
+    dedup_window_hours: int
+    dedup_max_km: float
 
     @property
     def telegram_configured(self) -> bool:
@@ -69,7 +73,14 @@ def load_config(dotenv_path: str = ".env") -> Config:
             "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
         ),
         usgs_poll_seconds=int(os.environ.get("HADR_USGS_POLL_SECONDS", "60")),
+        gdacs_feed_url=os.environ.get(
+            "HADR_GDACS_FEED_URL",
+            "https://www.gdacs.org/gdacsapi/api/events/geteventlist/EVENTS4APP",
+        ),
+        gdacs_poll_seconds=int(os.environ.get("HADR_GDACS_POLL_SECONDS", "360")),
         provisional_mag_min=float(os.environ.get("HADR_PROVISIONAL_MAG_MIN", "6.0")),
         coalesce_minutes=int(os.environ.get("HADR_COALESCE_MINUTES", "30")),
         backfill_hours=int(os.environ.get("HADR_BACKFILL_HOURS", "72")),
+        dedup_window_hours=int(os.environ.get("HADR_DEDUP_WINDOW_HOURS", "48")),
+        dedup_max_km=float(os.environ.get("HADR_DEDUP_MAX_KM", "100")),
     )

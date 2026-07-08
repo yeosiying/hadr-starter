@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from ..models import SourceRecord, epoch_ms_to_dt
+from ..models import AlertLevel, SourceRecord, epoch_ms_to_dt
 
 SOURCE = "usgs"
 
@@ -112,6 +112,7 @@ def parse(payload: bytes, *, raw_ref: str | None = None) -> list[SourceRecord]:
                 source_id=preferred,
                 hazard_type="EQ",
                 aliases=aliases,
+                claim_level=AlertLevel.from_pager(props.get("alert")),
                 mag=props.get("mag"),
                 place=props.get("place"),
                 lat=lat,

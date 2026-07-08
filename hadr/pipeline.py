@@ -1,15 +1,15 @@
-"""Ingest pipeline: parse -> store -> dedup -> trigger -> notify.
+"""Ingest pipeline: parse -> store -> dedup -> aggregate -> trigger -> notify.
 
-One canonical flow used by both the live poller (hadr/run.py) and the replay
-harness / tests (ADR-0012). Raw archiving happens in the caller (run.py) so
-that replaying an already-archived payload doesn't re-archive it.
+One canonical flow shared by the live poller (hadr/run.py) and the replay
+harness / tests (ADR-0012). Feed-agnostic: callers pass already-parsed source
+records from any feed. Raw archiving happens in the caller so replaying an
+archived payload doesn't re-archive it.
 """
 
 from __future__ import annotations
 
 from . import dedup, triggers
 from .config import Config
-from .feeds import usgs
 from .models import Notification, SourceRecord
 from .notify import Notifier
 from .store import Store
@@ -26,23 +26,24 @@ def process_records(
     """Run each source record through the pipeline. Returns notifications sent.
 
     `alert=False` stores state without notifying — the cold-start backfill path
-    (ADR-0009); see the deviation note in implementation-notes.md re: alerting
-    on still-active events, which needs GDACS episode levels (slice 2)."""
+    (ADR-0009)."""
     sent: list[Notification] = []
     for rec in records:
-        rec.event_id = dedup.resolve_event_id(store, rec)
+        rec.event_id = dedup.resolve_event_id(store, rec, config)
         prev_event = store.get_event(rec.event_id)
 
         srid, is_new_sr, prev_sr = store.upsert_source_record(rec)
         for alias in rec.aliases:
             store.add_alias(rec.source, alias, srid)
 
-        # Nothing materially changed since last poll -> no work (ADR-0003).
+        # Nothing materially changed for this source since last poll -> its
+        # contribution to the event is unchanged, so there is no work (ADR-0003).
         if not is_new_sr and prev_sr is not None and prev_sr["content_hash"] == rec.content_hash:
             continue
 
+        source_rows = store.source_records_for_event(rec.event_id)
         outcome = triggers.evaluate(
-            prev_event, rec, provisional_mag_min=config.provisional_mag_min
+            prev_event, source_rows, provisional_mag_min=config.provisional_mag_min
         )
 
         event = prev_event
@@ -52,8 +53,12 @@ def process_records(
         event.title = rec.place or event.title
         event.lat = rec.lat if rec.lat is not None else event.lat
         event.lon = rec.lon if rec.lon is not None else event.lon
+        if event.occurred_at is None and rec.occurred_at is not None:
+            event.occurred_at = rec.occurred_at
         if rec.glide and not event.glide:
-            event.glide = rec.glide
+            event.glide = rec.glide  # a late GLIDE keys future cross-source merges
+        if rec.country and not event.country:
+            event.country = rec.country
         store.update_event(event)
 
         if alert:
@@ -69,8 +74,10 @@ def process_payload(
     config: Config,
     payload: bytes,
     *,
+    parse,
     raw_ref: str | None = None,
     alert: bool = True,
 ) -> list[Notification]:
-    records = usgs.parse(payload, raw_ref=raw_ref)
+    """Parse a raw payload with the given feed `parse` function, then process."""
+    records = parse(payload, raw_ref=raw_ref)
     return process_records(store, notifier, config, records, alert=alert)

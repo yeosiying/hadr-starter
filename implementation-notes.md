@@ -24,6 +24,28 @@ trigger → Telegram, with the multi-source schema in place from day one.
   `./scripts/check.sh` = ruff + pytest (18 tests). Verified live against the
   real USGS feed (240 quakes parsed) and end-to-end via `hadr replay`.
 
+### 2026-07-08 — Slice 2: GDACS + cross-source dedup + asyncio scheduler
+
+- **GDACS ingest** via the EVENTS4APP GeoJSON list; reads `episodealertlevel`
+  (current) not `alertlevel` (lifetime max), per ADR-0001. Hazard-scope gate
+  (ADR-0002) in `triggers.scoped_level`: EQ/TC/FL alert, VO/DR store-only, WF
+  only at Red.
+- **Cross-source aggregation**: `triggers.aggregate` folds *all* of an event's
+  source claims into one level. A stored per-source `claim_level` (GDACS
+  episode level or USGS PAGER, as an `AlertLevel` int) makes this
+  source-agnostic. Any real assessment overrides the USGS provisional path —
+  so GDACS Orange/Red confirms it and GDACS Green stands it down (both tested
+  live + in unit tests).
+- **Real fuzzy dedup** (`dedup._fuzzy_match`): GLIDE exact match first, else
+  same hazard + time within ±48 h + haversine distance ≤ 100 km (config).
+  Conservative: closest under the ceiling wins, else a new event.
+- **Asyncio scheduler**: one task per feed on its own cadence, sharing one
+  SQLite connection safely (all DB work on the single event-loop thread; no
+  `to_thread`). Per-feed staleness/backoff retained.
+- Verified: 33 tests + ruff; live GDACS replay produced exactly 1 alert (a Red
+  TC) from 100 events, correctly filtering a Green-heavy feed and an Orange
+  wildfire; async `run` polled both feeds and cold-start-absorbed 123 events.
+
 ## Open questions
 
 - **Deletion detection**: slice 1 only retracts on an explicit
@@ -41,16 +63,28 @@ trigger → Telegram, with the multi-source schema in place from day one.
 
 1. **Provisional path drops the "near populated land" filter** (ADR-0001).
    Determining populated-land proximity needs a geo/population dataset or
-   GDACS's exposure model. Slice 1 alerts on *all* M≥6.0 unassessed quakes and
-   relies on ADR-0001's accepted "unassessed → dropped" retraction when a later
-   PAGER GREEN arrives. Self-corrects when GDACS lands (slice 2). Cost: a few
-   extra provisional alerts for large remote/ocean quakes.
+   GDACS's exposure model. We alert on *all* M≥6.0 unassessed quakes; the
+   self-correction is now real as of slice 2 — a later GDACS Green stands the
+   provisional down (tested). Residual cost: a provisional alert may fire for a
+   large remote/ocean quake in the ~25 min before GDACS assesses it.
 
-2. **Cold-start backfill is summary-feed-only, store-only, no active-alerting**
-   (ADR-0009). On a first-ever boot (empty store) the first poll is absorbed
-   store-only so we don't blast the 24h window. ADR-0009's "alert on
-   still-active Orange/Red" depends on GDACS *episode* levels, which USGS
-   doesn't provide — deferred to slice 2. FDSN 72h backfill also deferred.
+2. **Cold-start backfill is current-snapshot, store-only, no active-alerting**
+   (ADR-0009). On a first-ever boot (empty store) the first poll of each feed
+   is absorbed store-only. GDACS episode levels are now available, so ADR-0009's
+   "alert on still-active Orange/Red" is *possible* — deliberately still
+   deferred to avoid firing every currently-active Red at once on first boot;
+   revisit with a "seen-before" watermark. FDSN/7-day backfill still deferred.
 
-3. **Single synchronous poll loop, not the asyncio multi-feed scheduler**
-   (ADR-0008). Slice 1 has one feed; asyncio scheduling arrives with GDACS.
+3. **GDACS uses EVENTS4APP GeoJSON, not RSS** (ADR-0005 names RSS). Structured
+   JSON exposes `episodealertlevel` directly and avoids RSS namespace/BOM
+   parsing. EVENTS4APP returns no ETag/Last-Modified, so GDACS polls are
+   unconditional; the pipeline's content-hash prevents reprocessing. Cadence
+   (6 min) unchanged.
+
+4. **GDACS has no deletion signal.** EVENTS4APP `iscurrent=false` means *past*,
+   not retracted (mapped to status "past"). Deletion-driven retraction stays
+   USGS-only (ADR-0003); a GDACS event leaving the list is treated like an
+   aged-out item, not a withdrawal.
+
+Resolved since slice 1: the single synchronous poll loop is now the asyncio
+multi-feed scheduler (ADR-0008).

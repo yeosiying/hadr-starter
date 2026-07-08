@@ -46,6 +46,42 @@ def make_quake(
     }
 
 
+def make_gdacs_event(
+    *,
+    eventid: int = 1550421,
+    episodeid: int = 1716583,
+    eventtype: str = "EQ",
+    episodealertlevel: str = "Orange",
+    alertlevel: str | None = None,
+    glide: str = "",
+    country: str = "Testland",
+    name: str = "Earthquake in Testland",
+    lon: float = -70.0,
+    lat: float = -30.0,
+    fromdate: str = "2026-07-06T11:29:36",
+    datemodified: str = "2026-07-06T12:09:48",
+    iscurrent: str = "true",
+) -> dict:
+    return {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [lon, lat]},
+        "properties": {
+            "eventtype": eventtype,
+            "eventid": eventid,
+            "episodeid": episodeid,
+            "glide": glide,
+            "name": name,
+            "alertlevel": alertlevel or episodealertlevel,
+            "episodealertlevel": episodealertlevel,
+            "country": country,
+            "iso3": "TST",
+            "fromdate": fromdate,
+            "datemodified": datemodified,
+            "iscurrent": iscurrent,
+        },
+    }
+
+
 def make_payload(features: list[dict], *, bom: bool = False) -> bytes:
     doc = {
         "type": "FeatureCollection",
@@ -66,9 +102,13 @@ def config() -> Config:
         dry_run=True,
         usgs_feed_url="http://example.invalid/feed.geojson",
         usgs_poll_seconds=60,
+        gdacs_feed_url="http://example.invalid/gdacs.json",
+        gdacs_poll_seconds=360,
         provisional_mag_min=6.0,
         coalesce_minutes=30,
         backfill_hours=72,
+        dedup_window_hours=48,
+        dedup_max_km=100.0,
     )
 
 

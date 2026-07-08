@@ -7,6 +7,7 @@ import dataclasses
 
 from conftest import make_payload, make_quake
 
+from hadr.feeds import usgs
 from hadr.models import AlertLevel, Transition
 from hadr.notify import Notifier
 from hadr.pipeline import process_payload
@@ -19,7 +20,9 @@ def _no_coalesce(store, config):
 
 
 def run(store, notifier, config, features, **kw):
-    return process_payload(store, notifier, config, make_payload(features), **kw)
+    return process_payload(
+        store, notifier, config, make_payload(features), parse=usgs.parse, **kw
+    )
 
 
 # --- new alerts ------------------------------------------------------------

@@ -44,6 +44,16 @@ class AlertLevel(IntEnum):
             "red": cls.RED,
         }.get((alert or "").strip().lower(), cls.NONE)
 
+    @classmethod
+    def from_gdacs(cls, level: str | None) -> "AlertLevel":
+        # GDACS uses Green/Orange/Red (no Yellow); yellow tolerated defensively.
+        return {
+            "green": cls.GREEN,
+            "yellow": cls.YELLOW,
+            "orange": cls.ORANGE,
+            "red": cls.RED,
+        }.get((level or "").strip().lower(), cls.NONE)
+
     @property
     def is_alertable(self) -> bool:
         return self >= AlertLevel.PROVISIONAL
@@ -74,25 +84,21 @@ class SourceRecord:
     hazard_type: str  # "EQ", "TC", "FL", ...
     aliases: list[str] = field(default_factory=list)  # other ids for the same event
     event_id: int | None = None  # FK to canonical Event
-    mag: float | None = None
+    claim_level: AlertLevel = AlertLevel.NONE  # this source's assessed verdict
+    mag: float | None = None  # USGS only; drives the provisional path
+    episode_id: str | None = None  # GDACS per-update episode id
     place: str | None = None
     country: str | None = None
     lat: float | None = None
     lon: float | None = None
     depth_km: float | None = None
-    pager: str | None = None  # raw green/yellow/orange/red
+    pager: str | None = None  # USGS raw green/yellow/orange/red
     status: str | None = None  # automatic / reviewed / deleted
     glide: str | None = None
     occurred_at: datetime | None = None
     source_updated_at: datetime | None = None
     raw_ref: str | None = None  # archive path#index for audit (ADR-0006)
     content_hash: str | None = None  # detects meaningful change between polls
-
-    def alert_level(self) -> AlertLevel:
-        """This source's severity: max of its PAGER verdict and, for a large
-        unassessed earthquake, the provisional level. Threshold check lives in
-        triggers.py so the magnitude cutoff stays configurable."""
-        return AlertLevel.from_pager(self.pager)
 
 
 @dataclass
@@ -106,6 +112,7 @@ class Event:
     country: str | None = None
     lat: float | None = None
     lon: float | None = None
+    occurred_at: datetime | None = None  # representative event time (for fuzzy dedup)
     alert_level: AlertLevel = AlertLevel.NONE  # current, across all sources
     provisional: bool = False  # currently on the unassessed M>=min path
     retracted: bool = False

@@ -9,7 +9,7 @@ USGS rows (ADR-0012).
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from .models import AlertLevel, Event, Notification, SourceRecord, now_utc
@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS events (
     country      TEXT,
     lat          REAL,
     lon          REAL,
+    occurred_at  TEXT,
     alert_level  INTEGER NOT NULL DEFAULT 0,
     provisional  INTEGER NOT NULL DEFAULT 0,
     retracted    INTEGER NOT NULL DEFAULT 0,
@@ -36,7 +37,9 @@ CREATE TABLE IF NOT EXISTS source_records (
     source            TEXT NOT NULL,
     source_id         TEXT NOT NULL,
     hazard_type       TEXT NOT NULL,
+    claim_level       INTEGER NOT NULL DEFAULT 0,
     mag               REAL,
+    episode_id        TEXT,
     place             TEXT,
     country           TEXT,
     lat               REAL,
@@ -110,11 +113,12 @@ class Store:
         now = now_utc()
         cur = self.conn.execute(
             """INSERT INTO events
-               (hazard_type, glide, title, country, lat, lon,
+               (hazard_type, glide, title, country, lat, lon, occurred_at,
                 alert_level, provisional, retracted, created_at, updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 ev.hazard_type, ev.glide, ev.title, ev.country, ev.lat, ev.lon,
+                _iso(ev.occurred_at),
                 int(ev.alert_level), int(ev.provisional), int(ev.retracted),
                 _iso(now), _iso(now),
             ),
@@ -128,11 +132,11 @@ class Store:
         ev.updated_at = now_utc()
         self.conn.execute(
             """UPDATE events SET
-                 glide=?, title=?, country=?, lat=?, lon=?,
+                 glide=?, title=?, country=?, lat=?, lon=?, occurred_at=?,
                  alert_level=?, provisional=?, retracted=?, updated_at=?
                WHERE id=?""",
             (
-                ev.glide, ev.title, ev.country, ev.lat, ev.lon,
+                ev.glide, ev.title, ev.country, ev.lat, ev.lon, _iso(ev.occurred_at),
                 int(ev.alert_level), int(ev.provisional), int(ev.retracted),
                 _iso(ev.updated_at), ev.id,
             ),
@@ -154,6 +158,39 @@ class Store:
         return _row_to_event(row) if row else None
 
     # --- source records ----------------------------------------------------
+
+    def source_records_for_event(self, event_id: int) -> list[sqlite3.Row]:
+        return list(
+            self.conn.execute(
+                "SELECT * FROM source_records WHERE event_id=?", (event_id,)
+            ).fetchall()
+        )
+
+    def candidate_events(
+        self, hazard_type: str, occurred_at: datetime | None, window_hours: int
+    ) -> list[sqlite3.Row]:
+        """Events of the same hazard with a known location whose time is within
+        +/- window_hours of `occurred_at` — the shortlist for fuzzy dedup
+        (ADR-0004). Returns all such events (with coords) if time is unknown."""
+        if occurred_at is None:
+            return list(
+                self.conn.execute(
+                    """SELECT * FROM events
+                       WHERE hazard_type=? AND lat IS NOT NULL AND lon IS NOT NULL""",
+                    (hazard_type,),
+                ).fetchall()
+            )
+        lo = _iso(occurred_at - timedelta(hours=window_hours))
+        hi = _iso(occurred_at + timedelta(hours=window_hours))
+        return list(
+            self.conn.execute(
+                """SELECT * FROM events
+                   WHERE hazard_type=? AND lat IS NOT NULL AND lon IS NOT NULL
+                     AND occurred_at IS NOT NULL
+                     AND occurred_at BETWEEN ? AND ?""",
+                (hazard_type, lo, hi),
+            ).fetchall()
+        )
 
     def find_source_record(self, source: str, source_id: str) -> sqlite3.Row | None:
         row = self.conn.execute(
@@ -182,13 +219,15 @@ class Store:
         if existing is None:
             cur = self.conn.execute(
                 """INSERT INTO source_records
-                   (event_id, source, source_id, hazard_type, mag, place, country,
-                    lat, lon, depth_km, pager, status, glide, occurred_at,
-                    source_updated_at, raw_ref, content_hash, first_seen, last_seen)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                   (event_id, source, source_id, hazard_type, claim_level, mag,
+                    episode_id, place, country, lat, lon, depth_km, pager, status,
+                    glide, occurred_at, source_updated_at, raw_ref, content_hash,
+                    first_seen, last_seen)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
-                    rec.event_id, rec.source, rec.source_id, rec.hazard_type, rec.mag,
-                    rec.place, rec.country, rec.lat, rec.lon, rec.depth_km, rec.pager,
+                    rec.event_id, rec.source, rec.source_id, rec.hazard_type,
+                    int(rec.claim_level), rec.mag, rec.episode_id, rec.place,
+                    rec.country, rec.lat, rec.lon, rec.depth_km, rec.pager,
                     rec.status, rec.glide, _iso(rec.occurred_at),
                     _iso(rec.source_updated_at), rec.raw_ref, rec.content_hash,
                     _iso(now), _iso(now),
@@ -200,15 +239,17 @@ class Store:
         srid = existing["id"]
         self.conn.execute(
             """UPDATE source_records SET
-                 source_id=?, hazard_type=?, mag=?, place=?, country=?, lat=?, lon=?,
-                 depth_km=?, pager=?, status=?, glide=?, occurred_at=?,
-                 source_updated_at=?, raw_ref=?, content_hash=?, last_seen=?
+                 source_id=?, hazard_type=?, claim_level=?, mag=?, episode_id=?,
+                 place=?, country=?, lat=?, lon=?, depth_km=?, pager=?, status=?,
+                 glide=?, occurred_at=?, source_updated_at=?, raw_ref=?,
+                 content_hash=?, last_seen=?
                WHERE id=?""",
             (
-                rec.source_id, rec.hazard_type, rec.mag, rec.place, rec.country,
-                rec.lat, rec.lon, rec.depth_km, rec.pager, rec.status, rec.glide,
-                _iso(rec.occurred_at), _iso(rec.source_updated_at), rec.raw_ref,
-                rec.content_hash, _iso(now), srid,
+                rec.source_id, rec.hazard_type, int(rec.claim_level), rec.mag,
+                rec.episode_id, rec.place, rec.country, rec.lat, rec.lon,
+                rec.depth_km, rec.pager, rec.status, rec.glide, _iso(rec.occurred_at),
+                _iso(rec.source_updated_at), rec.raw_ref, rec.content_hash,
+                _iso(now), srid,
             ),
         )
         self.conn.commit()
@@ -315,6 +356,7 @@ def _row_to_event(row: sqlite3.Row) -> Event:
         country=row["country"],
         lat=row["lat"],
         lon=row["lon"],
+        occurred_at=_dt(row["occurred_at"]),
         alert_level=AlertLevel(row["alert_level"]),
         provisional=bool(row["provisional"]),
         retracted=bool(row["retracted"]),

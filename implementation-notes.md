@@ -110,6 +110,27 @@ here): `system-view.html`, `goal.md`, and at least one skill.
 - ReliefWeb records never produce notifications, so they don't appear in the
   updates feed — only as the on-card enrichment badge. Intended (never triggers).
 
+### 2026-07-08 — Past-week alerts (surface events that already happened)
+
+Requested: include recent past events, bounded to 1 week.
+
+- **Ingestion widened**: default USGS feed `all_day` (24h) → **`4.5_week`**
+  (M4.5+, past 7 days). Covers all humanitarian-relevant quakes for the week
+  and surfaces M6+ that happened days ago; also drops the flood of sub-M4.5
+  micro-quakes we never alerted on (a bonus: less over-merge surface). Still
+  one config var (`HADR_USGS_FEED_URL`) — swap back to `all_day` for a 24h
+  high-res window.
+- **Display**: alert cards now show the event's **occurred** date, so "when it
+  happened" is explicit. New **"Earlier this week — ended"** section lists
+  alertable events that have since been retracted/stood down whose event time
+  is within `HADR_RECENT_ALERT_DAYS` (default 7). Currently-active past-week
+  events already appear under "Current alerts" (active_events is not
+  time-bounded — an ongoing crisis shows regardless of age).
+- Past-week events are *surfaced*, not re-notified: cold-start stays store-only
+  (ADR-0009), so a reboot doesn't blast the week into the updates feed.
+- 2 new tests (56 total): recently-ended shows within the window; older-than-
+  window excluded.
+
 ## Open questions
 
 - **Deletion detection**: slice 1 only retracts on an explicit

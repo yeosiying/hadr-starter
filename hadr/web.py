@@ -100,6 +100,14 @@ def render_page(store: Store, config: Config, *, live: bool = True) -> str:
     else:
         cards = '<p class="empty">No active alerts. All monitored hazards are below threshold.</p>'
 
+    ended = store.recently_ended_alerts(config.recent_alert_days)
+    ended_html = ""
+    if ended:
+        ecards = "\n".join(_event_card(e, _reliefweb_links(store, e["id"])) for e in ended)
+        ended_html = (
+            f'<h2>Earlier this week — ended ({len(ended)})</h2>\n{ecards}'
+        )
+
     rows = "\n".join(_update_row(u) for u in updates) or (
         '<tr><td colspan="3" class="empty">No updates recorded yet.</td></tr>'
     )
@@ -110,7 +118,7 @@ def render_page(store: Store, config: Config, *, live: bool = True) -> str:
     ) + _fmt(now_utc().isoformat())
     return _PAGE.format(
         style=_STYLE, refresh=refresh, banner=banner,
-        count=len(active), cards=cards, rows=rows, footer=footer,
+        count=len(active), cards=cards, ended=ended_html, rows=rows, footer=footer,
     )
 
 
@@ -138,16 +146,20 @@ def _event_card(e, reliefweb_links: list[str]) -> str:
     color = _LEVEL_COLOR.get(level, "#666")
     emoji = HAZARD_EMOJI.get(e["hazard_type"], "⚠️")
     title = html.escape(e["title"] or "(unnamed event)")
-    country = html.escape(e["country"] or "")
-    enrich = ""
-    if reliefweb_links:
-        enrich = '<div class="enrich">📰 ReliefWeb — confirmed</div>'
+    ended = '<span class="flag">ended</span>' if e["retracted"] else ""
+    meta_parts = []
+    if e["country"]:
+        meta_parts.append(html.escape(e["country"]))
+    if e["occurred_at"]:
+        meta_parts.append(f"occurred {_fmt(e['occurred_at'])}")
+    meta_parts.append(f"updated {_fmt(e['updated_at'])}")
+    enrich = '<div class="enrich">📰 ReliefWeb — confirmed</div>' if reliefweb_links else ""
     return f"""<a class="cardlink" href="/event/{e["id"]}">
     <div class="card" style="border-left-color:{color}">
       <div class="lvl" style="background:{color}">{level.label}</div>
       <div class="body">
-        <div class="ttl">{emoji} {e["hazard_type"]} — {title}</div>
-        <div class="meta">{country}{' · ' if country else ''}updated {_fmt(e["updated_at"])}</div>
+        <div class="ttl">{emoji} {e["hazard_type"]} — {title}{ended}</div>
+        <div class="meta">{" · ".join(meta_parts)}</div>
         {enrich}
       </div>
       <div class="chev">›</div>
@@ -336,6 +348,7 @@ _PAGE = """<!doctype html>
   {banner}
   <h2>Current alerts ({count})</h2>
   {cards}
+  {ended}
   <h2>Recent updates</h2>
   <table><thead><tr><th>When</th><th>Change</th><th>Event</th></tr></thead>
   <tbody>

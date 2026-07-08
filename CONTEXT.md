@@ -55,9 +55,13 @@ policy; raw payload archive for audit/replay.
   claims underneath; GLIDE match first, fuzzy fallback (hazard + country +
   ±48 h + geometry); conservative — a false merge is worse than a missed one.
   [ADR-0004](docs/adr/0004-dedup-canonical-events.md)
-- **Polling**: USGS summary feed 60 s (If-Modified-Since); GDACS RSS 6 min
-  (ETag); ReliefWeb 30 min consolidated (~96 of the 1,000 daily call cap).
+- **Polling**: USGS summary feed 60 s (If-Modified-Since), M4.5+ past-week
+  window so recent past events are covered; GDACS 6 min; ReliefWeb 30 min.
   [ADR-0005](docs/adr/0005-polling-cadence.md)
+- **Past-week view**: recent alertable events that already happened are shown —
+  active ones under "Current alerts", recently-ended ones under "Earlier this
+  week" (bounded to `HADR_RECENT_ALERT_DAYS`, default 7).
+  [ADR-0009](docs/adr/0009-cold-start-backfill.md)
 - **Persistence**: SQLite (`events`, `source_records`, `notifications`) +
   raw payload archive on disk, written before parsing; keep everything
   indefinitely (KB-scale volumes; the archive is the replay-test corpus).

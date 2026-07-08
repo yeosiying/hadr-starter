@@ -126,6 +126,32 @@ def test_event_detail_404_for_missing(store, config):
     assert render_event_page(store, config, 999) is None
 
 
+def _ms_days_ago(days):
+    from hadr.models import now_utc
+    return int((now_utc().timestamp() - days * 86400) * 1000)
+
+
+def test_recently_ended_alert_shows_in_past_week_section(store, notifier, config):
+    # A provisional quake from 2 days ago that then gets deleted -> retracted.
+    t = _ms_days_ago(2)
+    _usgs(store, notifier, config, [make_quake(eq_id="x", mag=6.5, time_ms=t, updated_ms=t)])
+    _usgs(store, notifier, config,
+          [make_quake(eq_id="x", mag=6.5, status="deleted", time_ms=t, updated_ms=t + 1)])
+    html = render_page(store, config)
+    assert "Earlier this week — ended (1)" in html
+    assert "occurred" in html          # occurred date shown on the card
+    assert store.active_events() == []  # not in the current-active list
+
+
+def test_old_ended_alert_excluded_from_past_week(store, notifier, config):
+    t = _ms_days_ago(30)  # older than the 7-day window
+    _usgs(store, notifier, config, [make_quake(eq_id="y", mag=6.5, time_ms=t, updated_ms=t)])
+    _usgs(store, notifier, config,
+          [make_quake(eq_id="y", mag=6.5, status="deleted", time_ms=t, updated_ms=t + 1)])
+    assert store.recently_ended_alerts(7) == []
+    assert "Earlier this week" not in render_page(store, config)
+
+
 def test_write_dashboard_creates_file(store, notifier, config, tmp_path):
     _gdacs(store, notifier, config, [make_gdacs_event(episodealertlevel="Red", name="Big TC")])
     cfg = dataclasses.replace(config, dashboard_path=tmp_path / "dashboard.html")

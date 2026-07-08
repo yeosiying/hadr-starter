@@ -51,6 +51,7 @@ class Config:
     provisional_mag_min: float
     coalesce_minutes: int
     backfill_hours: int
+    recent_alert_days: int
     dedup_window_hours: int
     dedup_max_km: float
 
@@ -65,7 +66,9 @@ def load_config(dotenv_path: str = ".env") -> Config:
         web_port=int(os.environ.get("HADR_WEB_PORT", "8000")),
         usgs_feed_url=os.environ.get(
             "HADR_USGS_FEED_URL",
-            "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+            # M4.5+ over the past week — covers humanitarian-relevant quakes and
+            # surfaces recent past events, not just the last 24h (ADR-0005/0009).
+            "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson",
         ),
         usgs_poll_seconds=int(os.environ.get("HADR_USGS_POLL_SECONDS", "60")),
         gdacs_feed_url=os.environ.get(
@@ -82,6 +85,7 @@ def load_config(dotenv_path: str = ".env") -> Config:
         provisional_mag_min=float(os.environ.get("HADR_PROVISIONAL_MAG_MIN", "6.0")),
         coalesce_minutes=int(os.environ.get("HADR_COALESCE_MINUTES", "30")),
         backfill_hours=int(os.environ.get("HADR_BACKFILL_HOURS", "72")),
+        recent_alert_days=int(os.environ.get("HADR_RECENT_ALERT_DAYS", "7")),
         dedup_window_hours=int(os.environ.get("HADR_DEDUP_WINDOW_HOURS", "48")),
         dedup_max_km=float(os.environ.get("HADR_DEDUP_MAX_KM", "100")),
     )

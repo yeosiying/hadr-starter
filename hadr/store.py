@@ -339,6 +339,21 @@ class Store:
             ).fetchall()
         )
 
+    def recently_ended_alerts(self, within_days: int) -> list[sqlite3.Row]:
+        """Alertable events that have since been retracted/stood down, whose
+        event time is within the past `within_days` — 'already happened' alerts
+        for the past-week view. Newest first."""
+        cutoff = _iso(now_utc() - timedelta(days=within_days))
+        return list(
+            self.conn.execute(
+                """SELECT * FROM events
+                   WHERE alert_level >= ? AND retracted = 1
+                     AND occurred_at IS NOT NULL AND occurred_at >= ?
+                   ORDER BY occurred_at DESC""",
+                (int(AlertLevel.PROVISIONAL), cutoff),
+            ).fetchall()
+        )
+
     def recent_notifications(self, limit: int = 50) -> list[sqlite3.Row]:
         """The update feed: recorded transitions with their event's context."""
         return list(

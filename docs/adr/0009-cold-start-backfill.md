@@ -31,3 +31,10 @@ On startup:
   evaluation — episode alert level makes this natural for GDACS.
 - FDSN and summary-feed representations of the same event differ slightly;
   the source-record layer must normalize both.
+
+> Update 2026-07-08: the USGS poll window widened from `all_day` (24h) to
+> `4.5_week` (M4.5+, 7 days) so recent past events are ingested, and the web
+> page surfaces them — currently-active ones under "Current alerts" (any age),
+> recently-retracted ones under "Earlier this week" (bounded to
+> `HADR_RECENT_ALERT_DAYS`). Surfacing only — cold start remains store-only, so
+> this does not re-notify the week on boot.

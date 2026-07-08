@@ -30,6 +30,7 @@ def _load_dotenv(path: str = ".env") -> None:
 class Config:
     db_path: Path
     archive_dir: Path
+    dashboard_path: Path
     web_host: str
     web_port: int
     usgs_feed_url: str
@@ -48,6 +49,7 @@ def load_config(dotenv_path: str = ".env") -> Config:
     return Config(
         db_path=Path(os.environ.get("HADR_DB_PATH", "data/hadr.sqlite3")),
         archive_dir=Path(os.environ.get("HADR_ARCHIVE_DIR", "data/raw")),
+        dashboard_path=Path(os.environ.get("HADR_DASHBOARD_PATH", "dashboard.html")),
         web_host=os.environ.get("HADR_WEB_HOST", "127.0.0.1"),
         web_port=int(os.environ.get("HADR_WEB_PORT", "8000")),
         usgs_feed_url=os.environ.get(

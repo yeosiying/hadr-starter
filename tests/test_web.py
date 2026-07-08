@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 from conftest import make_gdacs_event, make_payload, make_quake
 
 from hadr.feeds import gdacs, usgs
 from hadr.pipeline import process_payload
-from hadr.web import render_page
+from hadr.web import render_page, write_dashboard
 
 
 def _usgs(store, notifier, config, feats, **kw):
@@ -63,3 +65,22 @@ def test_html_escaping_of_event_title(store, notifier, config):
     html = render_page(store, config)
     assert "<script>x</script>" not in html
     assert "&lt;script&gt;" in html
+
+
+def test_live_page_autorefreshes_snapshot_does_not(store, config):
+    live = render_page(store, config, live=True)
+    snap = render_page(store, config, live=False)
+    assert 'http-equiv="refresh"' in live
+    assert "Auto-refreshes" in live
+    assert 'http-equiv="refresh"' not in snap
+    assert "Snapshot generated" in snap
+
+
+def test_write_dashboard_creates_file(store, notifier, config, tmp_path):
+    _gdacs(store, notifier, config, [make_gdacs_event(episodealertlevel="Red", name="Big TC")])
+    cfg = dataclasses.replace(config, dashboard_path=tmp_path / "dashboard.html")
+    path = write_dashboard(store, cfg)
+    written = (tmp_path / "dashboard.html").read_text()
+    assert path == str(tmp_path / "dashboard.html")
+    assert "Big TC" in written
+    assert 'http-equiv="refresh"' not in written  # static snapshot

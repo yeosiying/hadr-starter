@@ -25,6 +25,11 @@ this kind of swap.
   - a **feed-health banner** (ADR-0010) computed from `feed_state`;
   - **current active alerts** (`events` at an alertable level, not retracted);
   - a **recent updates feed** (the `notifications` rows).
+- **A `hadr dashboard` command** writes a static `dashboard.html` snapshot via
+  the same `render_page` renderer (`live=False`, no auto-refresh). This is the
+  committed product artifact the `README` expects and the target of the future
+  08:30 sitrep routine; reusing the renderer keeps it from drifting from the
+  served page.
 - **Decoupled process.** The poller (`hadr run`) writes; the web server reads
   the same SQLite file in a separate process. SQLite handles concurrent readers.
 - **Localhost, no auth** (QUESTIONS.md Q2 revised). Binds `127.0.0.1:8000` by

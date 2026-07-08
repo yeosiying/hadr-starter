@@ -61,7 +61,10 @@ def _feed_health(store: Store, config: Config) -> list[dict]:
     return out
 
 
-def render_page(store: Store, config: Config) -> str:
+def render_page(store: Store, config: Config, *, live: bool = True) -> str:
+    """Render the page. `live=True` (the served page) auto-refreshes; `live=False`
+    (the committed dashboard.html snapshot) does not and is labelled as of its
+    generation time."""
     health = _feed_health(store, config)
     active = store.active_events()
     updates = store.recent_notifications(limit=50)
@@ -86,13 +89,29 @@ def render_page(store: Store, config: Config) -> str:
         '<tr><td colspan="3" class="empty">No updates recorded yet.</td></tr>'
     )
 
+    refresh = '<meta http-equiv="refresh" content="30">' if live else ""
+    footer = (
+        "Auto-refreshes every 30s · generated " if live else "Snapshot generated "
+    ) + _fmt(now_utc().isoformat())
     return _PAGE.format(
+        refresh=refresh,
         banner=banner,
         count=len(active),
         cards=cards,
         rows=rows,
-        generated=_fmt(now_utc().isoformat()),
+        footer=footer,
     )
+
+
+def write_dashboard(store: Store, config: Config) -> str:
+    """Render a static snapshot to config.dashboard_path (the README product
+    artifact) and return the path written. Reuses the live renderer so the
+    committed dashboard and the served page never drift."""
+    html_text = render_page(store, config, live=False)
+    path = config.dashboard_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(html_text, encoding="utf-8")
+    return str(path)
 
 
 def _event_card(e) -> str:
@@ -168,7 +187,7 @@ _PAGE = """<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="30">
+{refresh}
 <title>HADR Monitor</title>
 <style>
   :root {{ color-scheme: light dark; }}
@@ -210,5 +229,5 @@ _PAGE = """<!doctype html>
   {rows}
   </tbody></table>
 </main>
-<footer>Auto-refreshes every 30s · generated {generated}</footer>
+<footer>{footer}</footer>
 </body></html>"""

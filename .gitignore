@@ -11,6 +11,8 @@ data/
 # Secrets stay out of the repo and out of the agent's context.
 .env
 .env.*
+# ...but the example (no secrets) is documentation and must be committed.
+!.env.example
 
 # Language debris — extend for whichever toolchain you pick in CLAUDE.md.
 __pycache__/

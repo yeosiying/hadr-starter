@@ -155,6 +155,18 @@ def cmd_web(config: Config) -> int:
     return 0
 
 
+def cmd_dashboard(config: Config) -> int:
+    from .web import write_dashboard
+
+    store = Store(config.db_path)
+    try:
+        path = write_dashboard(store, config)
+    finally:
+        store.close()
+    print(f"[dashboard] wrote {path}")
+    return 0
+
+
 def cmd_replay(config: Config, feed: str, files: list[str]) -> int:
     parse = PARSERS[feed]
     store = Store(config.db_path)
@@ -175,6 +187,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("run", help="live concurrent poll loops (USGS + GDACS)")
     sub.add_parser("web", help="serve the read-only updates page")
+    sub.add_parser("dashboard", help="write a static dashboard.html snapshot")
     replay = sub.add_parser("replay", help="feed archived payloads through the pipeline")
     replay.add_argument("--feed", choices=sorted(PARSERS), default="usgs")
     replay.add_argument("files", nargs="+", help="payload file(s) to replay")
@@ -186,6 +199,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_run(config)
     if args.command == "web":
         return cmd_web(config)
+    if args.command == "dashboard":
+        return cmd_dashboard(config)
     if args.command == "replay":
         return cmd_replay(config, args.feed, args.files)
     return 1

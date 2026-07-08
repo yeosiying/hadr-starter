@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>HADR Monitor</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0;
+         background: #f6f7f9; color: #1a1a1a; }
+  @media (prefers-color-scheme: dark) { body { background:#14161a; color:#e8e8e8; }
+    .card, .feed { background:#1e2127 !important; } th { color:#aaa !important; } }
+  header { padding: 1rem 1.25rem; background:#0b3d66; color:#fff; }
+  header h1 { margin:0; font-size:1.15rem; }
+  header .sub { opacity:.8; font-size:.8rem; }
+  main { max-width: 52rem; margin: 0 auto; padding: 1rem 1.25rem 3rem; }
+  .banner { padding:.6rem .9rem; border-radius:8px; margin:1rem 0; font-size:.9rem; }
+  .banner.ok { background:#e6f4ea; color:#1e4620; }
+  .banner.bad { background:#fdecea; color:#611a15; font-weight:600; }
+  .banner.warn { background:#fff4e5; color:#663c00; }
+  h2 { font-size:.95rem; text-transform:uppercase; letter-spacing:.04em; opacity:.7; margin:1.5rem 0 .5rem; }
+  .card { display:flex; background:#fff; border-radius:10px; margin:.5rem 0;
+          border-left:6px solid; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card .lvl { color:#fff; font-weight:700; font-size:.72rem; padding:.75rem .6rem; display:flex; align-items:center; }
+  .card .body { padding:.6rem .8rem; }
+  .card .ttl { font-weight:600; }
+  .card .meta { font-size:.82rem; opacity:.7; margin-top:.15rem; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th, td { text-align:left; padding:.4rem .5rem; border-bottom:1px solid rgba(128,128,128,.2); vertical-align:top; }
+  .ts { white-space:nowrap; opacity:.7; }
+  .tag { color:#fff; font-size:.68rem; font-weight:700; padding:.1rem .4rem; border-radius:4px; }
+  .empty { opacity:.6; font-style:italic; }
+  footer { text-align:center; font-size:.75rem; opacity:.5; padding:1rem; }
+</style></head><body>
+<header><h1>🌐 HADR Monitor</h1>
+  <div class="sub">Humanitarian-impact disaster alerts · GDACS + USGS</div></header>
+<main>
+  <div class="banner warn">No feed activity yet — start the poller with <code>hadr run</code>.</div>
+  <h2>Current alerts (0)</h2>
+  <p class="empty">No active alerts. All monitored hazards are below threshold.</p>
+  <h2>Recent updates</h2>
+  <table><thead><tr><th>When</th><th>Change</th><th>Event</th></tr></thead>
+  <tbody>
+  <tr><td colspan="3" class="empty">No updates recorded yet.</td></tr>
+  </tbody></table>
+</main>
+<footer>Snapshot generated 2026-07-08 06:07 UTC</footer>
+</body></html>

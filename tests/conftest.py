@@ -4,6 +4,7 @@ synthetic USGS/GDACS payloads (ADR-0012 replay-style tests without live feeds)."
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -97,6 +98,7 @@ def config() -> Config:
     return Config(
         db_path=":memory:",
         archive_dir=None,  # unused in these tests
+        dashboard_path=Path("dashboard.html"),  # overridden in dashboard tests
         web_host="127.0.0.1",
         web_port=8000,
         usgs_feed_url="http://example.invalid/feed.geojson",

@@ -86,7 +86,9 @@ policy; raw payload archive for audit/replay.
 - **Delivery**: a pull-based web page (`hadr web`, stdlib server on
   localhost) showing a feed-health banner, current active alerts, and a recent
   updates feed — read live from SQLite. Each update keeps the compact content
-  (hazard, level, magnitude/name, country, event link).
+  (hazard, level, magnitude/name, country, event link). `hadr dashboard`
+  writes a static `dashboard.html` snapshot from the same renderer (the
+  committed README product artifact / future 08:30 sitrep target).
   [ADR-0013](docs/adr/0013-web-app-pull-delivery.md)
 
 ## Hard constraints (external, non-negotiable)

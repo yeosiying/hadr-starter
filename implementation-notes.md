@@ -68,6 +68,21 @@ pull-based web page.
   CONTEXT.md / QUESTIONS.md updated. The `notify()` seam made this cheap — the
   pipeline was untouched.
 
+### 2026-07-08 — README artifact reconciliation
+
+Aligned the repo with the artifact names in `README.md`.
+
+- Moved `docs/PRD.html` → root **`prd.html`** (the name the README lists).
+- Added **`hadr dashboard`** → writes a static **`dashboard.html`** via the
+  same `render_page` renderer (`live=False`); committed an empty-state snapshot
+  as the initial product artifact (`.gitignore` already un-ignores it). The
+  08:30 sitrep routine (day-2 work) will regenerate it.
+- Delivery serving model is unchanged (live `hadr web`, per ADR-0013); the
+  static dashboard is an additional on-demand artifact, not a per-poll write.
+
+Still outstanding from the README's artifact list (future work, not in scope
+here): `system-view.html`, `goal.md`, and at least one skill.
+
 ## Open questions
 
 - **Deletion detection**: slice 1 only retracts on an explicit

@@ -8,7 +8,7 @@ from conftest import make_gdacs_event, make_payload, make_quake, make_reliefweb_
 
 from hadr.feeds import gdacs, reliefweb, usgs
 from hadr.pipeline import process_payload
-from hadr.web import render_page, write_dashboard
+from hadr.web import render_event_page, render_page, write_dashboard
 
 
 def _usgs(store, notifier, config, feats, **kw):
@@ -87,13 +87,43 @@ def test_reliefweb_enrichment_badge(store, notifier, config):
         parse=reliefweb.parse, enrich_only=True,
     )
     html = render_page(store, config)
-    assert "ReliefWeb — confirmed" in html
-    assert "https://reliefweb.int/disaster/eq-2026-000093-ven" in html
+    assert "ReliefWeb — confirmed" in html          # badge on the index card
+    assert 'href="/event/1"' in html                # card links to the detail page
+    # The outbound ReliefWeb link now lives on the detail page, not the index.
+    assert "reliefweb.int/disaster/eq-2026-000093-ven" in render_event_page(store, config, 1)
 
 
 def test_no_reliefweb_badge_without_enrichment(store, notifier, config):
     _gdacs(store, notifier, config, [make_gdacs_event(episodealertlevel="Red")])
     assert "ReliefWeb — confirmed" not in render_page(store, config)
+
+
+def test_active_cards_link_to_detail_page(store, notifier, config):
+    _gdacs(store, notifier, config, [make_gdacs_event(episodealertlevel="Red", name="Big TC")])
+    assert 'href="/event/1"' in render_page(store, config)
+
+
+def test_event_detail_shows_sources_and_timeline(store, notifier, config):
+    glide = "EQ-2026-000093-VEN"
+    _gdacs(store, notifier, config,
+           [make_gdacs_event(eventtype="EQ", episodealertlevel="Orange", glide=glide, name="Quake VEN")])
+    process_payload(
+        store, notifier, config,
+        make_reliefweb_rss([{"title": "Venezuela: Earthquakes", "slug": "eq-2026-000093-ven",
+                             "glide": glide, "country": "Venezuela"}]),
+        parse=reliefweb.parse, enrich_only=True,
+    )
+    page = render_event_page(store, config, 1)
+    assert page is not None
+    assert "Sources (2)" in page          # GDACS + ReliefWeb claims both listed
+    assert "GDACS" in page and "ReliefWeb" in page
+    assert glide in page                   # GLIDE shown in details
+    assert "ALERT" in page                 # the NEW transition in the timeline
+    assert "reliefweb.int/disaster/eq-2026-000093-ven" in page  # outbound source link
+
+
+def test_event_detail_404_for_missing(store, config):
+    assert render_event_page(store, config, 999) is None
 
 
 def test_write_dashboard_creates_file(store, notifier, config, tmp_path):

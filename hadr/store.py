@@ -167,6 +167,14 @@ class Store:
 
     # --- source records ----------------------------------------------------
 
+    def event_has_source(self, event_id: int, source: str) -> bool:
+        """True if this event already holds a claim from `source`. Used to keep
+        fuzzy dedup from collapsing a single source's own stream (ADR-0004)."""
+        return self.conn.execute(
+            "SELECT 1 FROM source_records WHERE event_id=? AND source=? LIMIT 1",
+            (event_id, source),
+        ).fetchone() is not None
+
     def source_records_for_event(self, event_id: int) -> list[sqlite3.Row]:
         return list(
             self.conn.execute(
@@ -319,6 +327,15 @@ class Store:
                    WHERE alert_level >= ? AND retracted = 0
                    ORDER BY alert_level DESC, updated_at DESC""",
                 (int(AlertLevel.PROVISIONAL),),
+            ).fetchall()
+        )
+
+    def notifications_for_event(self, event_id: int) -> list[sqlite3.Row]:
+        """Full notification timeline for one event, newest first."""
+        return list(
+            self.conn.execute(
+                "SELECT * FROM notifications WHERE event_id=? ORDER BY sent_at DESC",
+                (event_id,),
             ).fetchall()
         )
 

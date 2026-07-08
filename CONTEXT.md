@@ -77,7 +77,7 @@ policy; raw payload archive for audit/replay.
 - **Python**, long-running process on an **always-on VPS/home server**
   (systemd service). [ADR-0008](docs/adr/0008-python-on-always-on-server.md)
 - **MVP sequencing**: thin vertical slice — USGS-only end-to-end
-  (poll → store → trigger → Telegram) with the dedup-ready schema from day
+  (poll → store → trigger → web page) with the dedup-ready schema from day
   one; then GDACS; then ReliefWeb.
   [ADR-0012](docs/adr/0012-vertical-slice-and-replay-testing.md)
 - **Testing**: replay recorded real payloads (including BOM-prefixed XML,

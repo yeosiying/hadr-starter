@@ -8,7 +8,8 @@ questions in `QUESTIONS.md`. Read those before proposing design changes.
 - **Python 3.11+**, managed with **`uv`**. Deps in `pyproject.toml`; run
   commands via `uv run …` (creates/uses `.venv` automatically).
 - HTTP: `httpx`. Persistence: stdlib `sqlite3`. No ORM.
-- Telegram delivery is a raw `httpx` POST — no bot framework.
+- Delivery is a pull-based web page served by the stdlib `http.server`
+  (`hadr web`) — no web framework (ADR-0013).
 
 ## Test command
 

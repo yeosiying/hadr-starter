@@ -7,12 +7,15 @@ Kept by the agent, reviewed by you. One entry per working block.
 ### 2026-07-08 — Slice 1: USGS end-to-end (ADR-0012)
 
 Built the thin vertical slice: poll USGS → archive raw → store → dedup →
-trigger → Telegram, with the multi-source schema in place from day one.
+trigger → delivery, with the multi-source schema in place from day one.
+(Delivery was Telegram in this slice; changed to the web app on 2026-07-08 —
+see the delivery-change entry below and ADR-0013.)
 
 - **Package layout** (`hadr/`): `config` (env-driven), `models` (dataclasses +
   `AlertLevel`/`Transition` enums), `archive`, `store` (SQLite), `feeds/usgs`
   (fetch + parse, separable for replay), `dedup`, `triggers`, `notify`
-  (Telegram + coalescing), `pipeline` (orchestration), `run` (CLI).
+  (delivery + coalescing — later repurposed to the web feed), `pipeline`
+  (orchestration), `run` (CLI).
 - **`AlertLevel` scale** `NONE<GREEN<PROVISIONAL<YELLOW<ORANGE<RED`. GREEN
   ranks *below* PROVISIONAL on purpose so a provisional (unassessed M≥6) that
   resolves to PAGER GREEN is a stand-down, and one that resolves to YELLOW+ is

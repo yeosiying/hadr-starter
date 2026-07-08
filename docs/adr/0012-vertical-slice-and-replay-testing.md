@@ -17,8 +17,9 @@ parsers don't reach.
 
 1. **Slice 1 (USGS end-to-end)**: poll summary feed → raw archive → source
    records → canonical events → trigger (provisional M≥6.0 path + PAGER) →
-   Telegram. The dedup-ready schema (ADR-0004) ships in this slice even with
-   one source.
+   delivery. The dedup-ready schema (ADR-0004) ships in this slice even with
+   one source. (Delivery was Telegram at the time of writing; now the web
+   page — ADR-0013.)
 2. **Slice 2**: GDACS ingestion + the full impact-based trigger policy +
    cross-source dedup for real.
 3. **Slice 3**: ReliefWeb enrichment when the flag/appname lands (ADR-0011).
@@ -36,8 +37,8 @@ parsers don't reach.
 
 ## Consequences
 
-- First real Telegram alert arrives after slice 1 — days, not weeks — and
-  every later slice rides an already-proven pipeline.
+- First real alert arrives after slice 1 — days, not weeks — and every later
+  slice rides an already-proven pipeline.
 - Dedup logic is only *exercised* from slice 2, but its schema exists from
   day one, avoiding a migration.
 - Fixture collection is an ongoing habit: when a weird payload breaks

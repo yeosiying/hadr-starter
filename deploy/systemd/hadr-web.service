@@ -1,0 +1,16 @@
+[Unit]
+Description=HADR monitor — web page (hadr web)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/hadr-monitor
+User=hadr
+ExecStart=/usr/bin/env uv run hadr web
+Restart=on-failure
+RestartSec=5
+# EnvironmentFile=/opt/hadr-monitor/.env
+# Default bind is 127.0.0.1:8000 (localhost only, ADR-0013).
+
+[Install]
+WantedBy=multi-user.target

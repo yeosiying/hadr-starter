@@ -1,0 +1,11 @@
+[Unit]
+Description=Regenerate dashboard.html at 08:30 Asia/Singapore (morning sitrep)
+
+[Timer]
+# Timezone suffix requires systemd >= 240.
+OnCalendar=*-*-* 08:30:00 Asia/Singapore
+# Catch up if the host was asleep/offline at 08:30.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

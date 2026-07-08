@@ -1,5 +1,5 @@
-"""Shared test helpers: an in-memory store, a dry-run notifier, and builders
-for synthetic USGS payloads (ADR-0012 replay-style tests without live feeds)."""
+"""Shared test helpers: an in-memory store, a notifier, and builders for
+synthetic USGS/GDACS payloads (ADR-0012 replay-style tests without live feeds)."""
 
 from __future__ import annotations
 
@@ -97,9 +97,8 @@ def config() -> Config:
     return Config(
         db_path=":memory:",
         archive_dir=None,  # unused in these tests
-        telegram_bot_token="",
-        telegram_chat_id="",
-        dry_run=True,
+        web_host="127.0.0.1",
+        web_port=8000,
         usgs_feed_url="http://example.invalid/feed.geojson",
         usgs_poll_seconds=60,
         gdacs_feed_url="http://example.invalid/gdacs.json",

@@ -12,9 +12,10 @@ and the user only finds out during the next disaster.
 ## Decision
 
 - Track last-successful-fetch per feed. If a feed hasn't succeeded within
-  **N× its cadence** (default N=3, config), send **one** "feed degraded"
-  Telegram notice; send **one** recovery notice when it comes back. No
-  repeats in between.
+  **N× its cadence** (default N=3, config), surface it as **degraded**. Under
+  push delivery (original ADR-0007) that was one degraded + one recovery
+  notice; under the web app (ADR-0013) it is a **health banner** on the page
+  computed from `feed_state`. Either way, degradation is visible, not silent.
 - **Exponential backoff with jitter** on 429/5xx (respecting `Retry-After`
   when present), overriding the normal cadence; conditional requests
   (ETag / If-Modified-Since) always, to stay polite.

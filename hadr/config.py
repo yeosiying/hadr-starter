@@ -26,20 +26,12 @@ def _load_dotenv(path: str = ".env") -> None:
         os.environ.setdefault(key, value)
 
 
-def _bool(name: str, default: bool) -> bool:
-    val = os.environ.get(name)
-    if val is None:
-        return default
-    return val.strip().lower() in {"1", "true", "yes", "on"}
-
-
 @dataclass(frozen=True)
 class Config:
     db_path: Path
     archive_dir: Path
-    telegram_bot_token: str
-    telegram_chat_id: str
-    dry_run: bool
+    web_host: str
+    web_port: int
     usgs_feed_url: str
     usgs_poll_seconds: int
     gdacs_feed_url: str
@@ -50,24 +42,14 @@ class Config:
     dedup_window_hours: int
     dedup_max_km: float
 
-    @property
-    def telegram_configured(self) -> bool:
-        return bool(self.telegram_bot_token and self.telegram_chat_id)
-
 
 def load_config(dotenv_path: str = ".env") -> Config:
     _load_dotenv(dotenv_path)
-    token = os.environ.get("HADR_TELEGRAM_BOT_TOKEN", "").strip()
-    chat_id = os.environ.get("HADR_TELEGRAM_CHAT_ID", "").strip()
-    # Dry-run defaults ON, and is forced ON when Telegram isn't configured
-    # (convention 4: never pretend to alert when we can't).
-    dry_run = _bool("HADR_DRY_RUN", True) or not (token and chat_id)
     return Config(
         db_path=Path(os.environ.get("HADR_DB_PATH", "data/hadr.sqlite3")),
         archive_dir=Path(os.environ.get("HADR_ARCHIVE_DIR", "data/raw")),
-        telegram_bot_token=token,
-        telegram_chat_id=chat_id,
-        dry_run=dry_run,
+        web_host=os.environ.get("HADR_WEB_HOST", "127.0.0.1"),
+        web_port=int(os.environ.get("HADR_WEB_PORT", "8000")),
         usgs_feed_url=os.environ.get(
             "HADR_USGS_FEED_URL",
             "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",

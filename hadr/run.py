@@ -1,6 +1,7 @@
 """Entrypoint: live poller and replay harness.
 
     uv run hadr run                       # concurrent USGS + GDACS poll loops
+    uv run hadr web                        # serve the updates page (ADR-0013)
     uv run hadr replay [--feed F] FILE...  # feed archived payloads through the pipeline
 
 The live loop runs one asyncio task per feed (ADR-0008), each on its own cadence
@@ -124,8 +125,8 @@ async def _run_async(config: Config) -> None:
     alert_from_start = store.event_count() > 0
     specs = _specs(config)
     print(
-        f"[run] polling {', '.join(s.name for s in specs)} "
-        f"(dry_run={config.dry_run}); Ctrl-C to stop"
+        f"[run] polling {', '.join(s.name for s in specs)}; "
+        f"view updates at http://{config.web_host}:{config.web_port} (hadr web); Ctrl-C to stop"
     )
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
         try:
@@ -144,6 +145,13 @@ def cmd_run(config: Config) -> int:
         asyncio.run(_run_async(config))
     except KeyboardInterrupt:
         print("\n[run] stopped")
+    return 0
+
+
+def cmd_web(config: Config) -> int:
+    from .web import serve
+
+    serve(config)
     return 0
 
 
@@ -166,6 +174,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="hadr", description="HADR monitoring agent")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("run", help="live concurrent poll loops (USGS + GDACS)")
+    sub.add_parser("web", help="serve the read-only updates page")
     replay = sub.add_parser("replay", help="feed archived payloads through the pipeline")
     replay.add_argument("--feed", choices=sorted(PARSERS), default="usgs")
     replay.add_argument("files", nargs="+", help="payload file(s) to replay")
@@ -175,6 +184,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "run":
         return cmd_run(config)
+    if args.command == "web":
+        return cmd_web(config)
     if args.command == "replay":
         return cmd_replay(config, args.feed, args.files)
     return 1

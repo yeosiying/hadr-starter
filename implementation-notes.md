@@ -46,6 +46,25 @@ trigger → Telegram, with the multi-source schema in place from day one.
   TC) from 100 events, correctly filtering a Green-heavy feed and an Orange
   wildfire; async `run` polled both feeds and cold-start-absorbed 123 events.
 
+### 2026-07-08 — Delivery change: Telegram push → web app (ADR-0013)
+
+Owner revised the delivery preference before slice 3. Swapped push for a
+pull-based web page.
+
+- **Config**: dropped `HADR_TELEGRAM_*` / `HADR_DRY_RUN`; added
+  `HADR_WEB_HOST` / `HADR_WEB_PORT`.
+- **Notifier** no longer pushes; `maybe_notify` records the `notifications`
+  row (that *is* delivery now) and logs. Transition + coalescing logic kept so
+  the on-page updates feed stays readable.
+- **`hadr/web.py`**: stdlib `ThreadingHTTPServer`, no framework. `render_page`
+  is a pure function (testable). Shows a feed-health banner (from `feed_state`,
+  ADR-0010), current active alerts, and the recent updates feed. Reads the same
+  SQLite file the poller writes, in a separate process. `hadr web` command;
+  binds localhost.
+- ADR-0007 marked Superseded; ADR-0010 wording made delivery-agnostic;
+  CONTEXT.md / QUESTIONS.md updated. The `notify()` seam made this cheap — the
+  pipeline was untouched.
+
 ## Open questions
 
 - **Deletion detection**: slice 1 only retracts on an explicit

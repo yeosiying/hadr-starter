@@ -15,9 +15,13 @@ later" was explicitly declined).
 - ~~B. Me now, small team later~~ (recommended, declined)
 - ~~C. Team/ops center from day one~~
 
-### Q2. Alert delivery channel for MVP? `ANSWERED → ADR-0007`
-**Answer: A — Telegram bot.** Push to phone, single HTTPS POST, free.
-- ~~B. Email~~ · ~~C. Slack webhook~~ · ~~D. Terminal/dashboard~~
+### Q2. Alert delivery channel for MVP? `REVISED 2026-07-08 → ADR-0013`
+**Original answer: A — Telegram bot** (→ ADR-0007). **Revised: a pull-based
+web app** the owner visits (`hadr web`, localhost). Audience unchanged (still
+just me, Q1); only push→pull changed. See
+[ADR-0013](docs/adr/0013-web-app-pull-delivery.md), which supersedes ADR-0007.
+- ~~A. Telegram bot~~ (original, revised away) · ~~B. Email~~ · ~~C. Slack~~
+- ~~D. Terminal/dashboard~~ → effectively chosen: a local web dashboard.
 
 ### Q3. Deployment target? `ANSWERED → ADR-0008`
 **Answer: A — Always-on VPS/home server**, systemd service.

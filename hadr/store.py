@@ -297,6 +297,34 @@ class Store:
             "SELECT * FROM feed_state WHERE feed=?", (feed,)
         ).fetchone()
 
+    def all_feed_state(self) -> list[sqlite3.Row]:
+        return list(self.conn.execute("SELECT * FROM feed_state ORDER BY feed").fetchall())
+
+    # --- read views for the web app (ADR-0013) -----------------------------
+
+    def active_events(self) -> list[sqlite3.Row]:
+        """Events currently at an alertable level and not retracted, most
+        severe and most recent first."""
+        return list(
+            self.conn.execute(
+                """SELECT * FROM events
+                   WHERE alert_level >= ? AND retracted = 0
+                   ORDER BY alert_level DESC, updated_at DESC""",
+                (int(AlertLevel.PROVISIONAL),),
+            ).fetchall()
+        )
+
+    def recent_notifications(self, limit: int = 50) -> list[sqlite3.Row]:
+        """The update feed: recorded transitions with their event's context."""
+        return list(
+            self.conn.execute(
+                """SELECT n.*, e.hazard_type, e.title, e.country
+                   FROM notifications n JOIN events e ON e.id = n.event_id
+                   ORDER BY n.sent_at DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()
+        )
+
     def save_feed_state(
         self,
         feed: str,

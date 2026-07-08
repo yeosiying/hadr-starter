@@ -1,20 +1,19 @@
-"""Alert delivery: compact Telegram messages with per-event coalescing
-(ADR-0007, ADR-0003).
+"""Update feed: what changes about an event become entries the web app shows
+(ADR-0013, ADR-0003). Delivery is pull — recording a notification *is* the
+delivery; the `hadr web` server renders these entries plus current state.
 
-Coalescing rule (per-event, not global):
-- NEW and RETRACTION always send immediately — a first alert and a stand-down
-  are both time-critical; a retraction jumps the queue.
-- ESCALATION / CONFIRMATION are suppressed if the last notification for this
-  event was within the coalesce window; the newer state is still persisted, so
-  a later differing poll outside the window will notify.
-- NONE never sends (silent store).
+Coalescing rule (per-event, not global) keeps the feed readable:
+- NEW and RETRACTION always record immediately — a first alert and a stand-down
+  are both important; a retraction jumps the queue.
+- ESCALATION / CONFIRMATION are suppressed if the last entry for this event was
+  within the coalesce window; the newer state is still persisted, so a later
+  differing poll outside the window records.
+- NONE never records (silent store).
 """
 
 from __future__ import annotations
 
 from datetime import timedelta
-
-import httpx
 
 from .config import Config
 from .models import (
@@ -99,46 +98,22 @@ class Notifier:
             return None  # coalesced; newer state already persisted
 
         body = format_message(event, rec, level, transition)
-        delivered = self._deliver(body)
-        return self.store.record_notification(
+        notif = self.store.record_notification(
             Notification(
                 event_id=event.id,
                 transition=transition,
                 level=level,
                 body=body,
-                delivered=delivered,
+                delivered=True,  # recorded to the feed the web app reads
             )
         )
-
-    def _deliver(self, body: str) -> bool:
-        if self.config.dry_run:
-            print("\n--- [DRY RUN] Telegram alert ---")
-            print(body)
-            print("--- end ---")
-            return False
-        return self._send_telegram(body)
-
-    def _send_telegram(self, text: str) -> bool:
-        url = f"https://api.telegram.org/bot{self.config.telegram_bot_token}/sendMessage"
-        try:
-            resp = httpx.post(
-                url,
-                json={
-                    "chat_id": self.config.telegram_chat_id,
-                    "text": text,
-                    "disable_web_page_preview": True,
-                },
-                timeout=15.0,
-            )
-            return resp.status_code == 200
-        except httpx.HTTPError:
-            return False
+        print(f"[update] {_TRANSITION_VERB.get(transition, 'UPDATE')} "
+              f"{event.hazard_type} {level.label} — {rec.place or ''}".rstrip())
+        return notif
 
     def send_feed_health(self, feed: str, *, degraded: bool) -> None:
-        """Operational notice (ADR-0010): silence must be distinguishable from
-        calm. Exempt from per-event coalescing."""
-        if degraded:
-            body = f"🔌 Feed degraded: {feed} has not returned fresh data. Alerts may be delayed."
-        else:
-            body = f"✅ Feed recovered: {feed} is responding again."
-        self._deliver(body)
+        """Operational log (ADR-0010): silence must be distinguishable from
+        calm. The web app renders the actual banner from feed_state; this just
+        records the transition to the operator log."""
+        state = "degraded" if degraded else "recovered"
+        print(f"[feed-health] {feed} {state}")

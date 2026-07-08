@@ -14,10 +14,11 @@ GDACS Green non-event).
 
 ## User
 
-One person (the repo owner), receiving push alerts on their phone via a
-Telegram bot ([ADR-0007](docs/adr/0007-single-user-telegram-delivery.md)).
-No team, no auth, no multi-tenancy. Reliability bar: personal-tool grade,
-but silence must be distinguishable from calm
+One person (the repo owner), who **visits a local web page** to see current
+alerts on demand ([ADR-0013](docs/adr/0013-web-app-pull-delivery.md), which
+supersedes the original Telegram-push decision in ADR-0007). No team, no auth,
+no multi-tenancy. Reliability bar: personal-tool grade, but silence must be
+distinguishable from calm — a degraded feed shows as a banner on the page
 ([ADR-0010](docs/adr/0010-feed-health-staleness-alerts.md)).
 
 ## Mental model of the feeds
@@ -82,10 +83,11 @@ policy; raw payload archive for audit/replay.
 - **Testing**: replay recorded real payloads (including BOM-prefixed XML,
   re-keyed USGS events, in-place GDACS guid updates, deletions) through the
   pipeline. Same ADR-0012.
-- **Alert format**: one compact Telegram message — hazard type, alert level,
-  magnitude/storm name, country, exposed-population estimate, links to the
-  GDACS/USGS event pages; update messages reference the original.
-  [ADR-0007](docs/adr/0007-single-user-telegram-delivery.md)
+- **Delivery**: a pull-based web page (`hadr web`, stdlib server on
+  localhost) showing a feed-health banner, current active alerts, and a recent
+  updates feed — read live from SQLite. Each update keeps the compact content
+  (hazard, level, magnitude/name, country, event link).
+  [ADR-0013](docs/adr/0013-web-app-pull-delivery.md)
 
 ## Hard constraints (external, non-negotiable)
 
@@ -104,8 +106,9 @@ policy; raw payload archive for audit/replay.
 - [ ] Request ReliefWeb `appname` at
       https://apidoc.reliefweb.int/parameters#appname (human approval;
       everything else proceeds meanwhile).
-- [ ] Provision the always-on host and create the Telegram bot
-      (@BotFather) + capture bot token and chat ID.
+- [ ] Provision the always-on host to run `hadr run` (poller) and `hadr web`
+      (page). No delivery secrets needed since the switch to the web app
+      (ADR-0013).
 
 ## Tunables deliberately left as config, not decisions
 

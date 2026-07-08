@@ -1,6 +1,11 @@
 # ADR-0007: Single-user Telegram delivery, compact alert format
 
-Date: 2026-07-08 · Status: Accepted
+Date: 2026-07-08 · Status: **Superseded by [ADR-0013](0013-web-app-pull-delivery.md)**
+
+> Superseded 2026-07-08: the owner switched from Telegram push to a pull-based
+> web app. The audience (just me) and the compact message content are
+> unchanged and carried forward; only the delivery channel changed. The
+> internal `notify()` seam this ADR introduced is what made the swap cheap.
 
 ## Context
 

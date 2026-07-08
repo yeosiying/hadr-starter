@@ -81,6 +81,22 @@ def test_usgs_and_gdacs_merge_by_geometry(store, config):
     assert sent[0].level is AlertLevel.ORANGE
 
 
+def test_distinct_same_source_quakes_stay_separate(store, notifier, config):
+    # Two different USGS quakes, close in space/time, must NOT merge — within a
+    # single feed distinct ids are distinct events (ADR-0004). Regression for
+    # the fuzzy-dedup over-merge that collapsed unrelated quakes.
+    usgs_run(store, notifier, config, [make_quake(eq_id="us1", mag=4.2, lon=-122.8, lat=38.8)])
+    usgs_run(store, notifier, config, [make_quake(eq_id="us2", mag=4.4, lon=-122.85, lat=38.81)])
+    assert store.event_count() == 2
+
+
+def test_swarm_of_usgs_quakes_are_distinct_events(store, notifier, config):
+    for i in range(6):
+        usgs_run(store, notifier, config,
+                 [make_quake(eq_id=f"sw{i}", mag=3.0 + i * 0.1, lon=-122.8 + i * 0.01, lat=38.8)])
+    assert store.event_count() == 6  # not collapsed into one
+
+
 def test_distant_same_hazard_events_do_not_merge(store, notifier, config):
     usgs_run(store, notifier, config, [make_quake(eq_id="us1", mag=6.5, lon=-70.0, lat=-30.0)])
     gdacs_run(

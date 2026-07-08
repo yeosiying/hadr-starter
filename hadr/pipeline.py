@@ -63,8 +63,13 @@ def process_records(
         event.provisional = outcome.provisional
         event.retracted = outcome.retracted
         event.title = rec.place or event.title
-        event.lat = rec.lat if rec.lat is not None else event.lat
-        event.lon = rec.lon if rec.lon is not None else event.lon
+        # Anchor coordinates/time to the first record that set them; don't let a
+        # later source drift the event's location (which would let fuzzy dedup
+        # chain distant events together — see dedup._fuzzy_match).
+        if event.lat is None and rec.lat is not None:
+            event.lat = rec.lat
+        if event.lon is None and rec.lon is not None:
+            event.lon = rec.lon
         if event.occurred_at is None and rec.occurred_at is not None:
             event.occurred_at = rec.occurred_at
         if rec.glide and not event.glide:

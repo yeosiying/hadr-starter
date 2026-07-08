@@ -67,7 +67,13 @@ def resolve_event_id(store: Store, rec: SourceRecord, config: Config) -> int:
 
 
 def _fuzzy_match(store: Store, rec: SourceRecord, config: Config) -> Event | None:
-    """Closest same-hazard event within the time window and distance ceiling."""
+    """Closest same-hazard event within the time window and distance ceiling.
+
+    Only ever links *across* sources: a candidate that already holds a claim
+    from `rec`'s own source is skipped. Within one feed, distinct stable ids are
+    distinct events — collapsing a source's own stream would be a false merge,
+    which ADR-0004 rates worse than a missed one (this is what stops, e.g., a
+    swarm of unrelated USGS micro-quakes folding into one 'event')."""
     if rec.lat is None or rec.lon is None:
         return None
     candidates = store.candidate_events(
@@ -78,6 +84,8 @@ def _fuzzy_match(store: Store, rec: SourceRecord, config: Config) -> Event | Non
     for row in candidates:
         if row["lat"] is None or row["lon"] is None:
             continue
+        if store.event_has_source(row["id"], rec.source):
+            continue  # same-source records are distinct events, never fuzzy-merged
         km = haversine_km(rec.lat, rec.lon, row["lat"], row["lon"])
         if km <= best_km:
             best_km = km

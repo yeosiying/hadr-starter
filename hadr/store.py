@@ -354,6 +354,22 @@ class Store:
             ).fetchall()
         )
 
+    def notable_events(self, mag_min: float, within_days: int) -> list[sqlite3.Row]:
+        """Earthquakes at or above `mag_min` in the past `within_days`, by peak
+        magnitude — situational awareness, independent of the humanitarian-impact
+        alert threshold (a big but PAGER-green quake still appears here)."""
+        cutoff = _iso(now_utc() - timedelta(days=within_days))
+        return list(
+            self.conn.execute(
+                """SELECT e.*, MAX(sr.mag) AS peak_mag
+                   FROM events e JOIN source_records sr ON sr.event_id = e.id
+                   WHERE sr.mag >= ? AND e.occurred_at IS NOT NULL AND e.occurred_at >= ?
+                   GROUP BY e.id
+                   ORDER BY peak_mag DESC""",
+                (mag_min, cutoff),
+            ).fetchall()
+        )
+
     def recent_notifications(self, limit: int = 50) -> list[sqlite3.Row]:
         """The update feed: recorded transitions with their event's context."""
         return list(

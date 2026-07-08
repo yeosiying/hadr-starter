@@ -141,6 +141,7 @@ def config() -> Config:
         coalesce_minutes=30,
         backfill_hours=72,
         recent_alert_days=7,
+        notable_mag_min=6.0,
         dedup_window_hours=48,
         dedup_max_km=100.0,
     )

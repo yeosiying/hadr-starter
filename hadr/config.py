@@ -52,6 +52,7 @@ class Config:
     coalesce_minutes: int
     backfill_hours: int
     recent_alert_days: int
+    notable_mag_min: float
     dedup_window_hours: int
     dedup_max_km: float
 
@@ -86,6 +87,7 @@ def load_config(dotenv_path: str = ".env") -> Config:
         coalesce_minutes=int(os.environ.get("HADR_COALESCE_MINUTES", "30")),
         backfill_hours=int(os.environ.get("HADR_BACKFILL_HOURS", "72")),
         recent_alert_days=int(os.environ.get("HADR_RECENT_ALERT_DAYS", "7")),
+        notable_mag_min=float(os.environ.get("HADR_NOTABLE_MAG_MIN", "6.0")),
         dedup_window_hours=int(os.environ.get("HADR_DEDUP_WINDOW_HOURS", "48")),
         dedup_max_km=float(os.environ.get("HADR_DEDUP_MAX_KM", "100")),
     )

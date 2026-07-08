@@ -108,6 +108,19 @@ def render_page(store: Store, config: Config, *, live: bool = True) -> str:
             f'<h2>Earlier this week — ended ({len(ended)})</h2>\n{ecards}'
         )
 
+    notable = store.notable_events(config.notable_mag_min, config.recent_alert_days)
+    notable_html = ""
+    if notable:
+        nrows = "\n".join(_notable_row(e) for e in notable)
+        notable_html = (
+            f"<h2>Notable seismic activity — M{config.notable_mag_min:g}+ this week "
+            f"({len(notable)})</h2>"
+            '<p class="hint">Significant earthquakes for awareness — includes ones assessed '
+            "low-impact, which do not raise a humanitarian alert.</p>"
+            "<table><thead><tr><th>Mag</th><th>Location</th><th>Impact</th><th>When</th></tr></thead>"
+            f"<tbody>{nrows}</tbody></table>"
+        )
+
     rows = "\n".join(_update_row(u) for u in updates) or (
         '<tr><td colspan="3" class="empty">No updates recorded yet.</td></tr>'
     )
@@ -117,8 +130,8 @@ def render_page(store: Store, config: Config, *, live: bool = True) -> str:
         "Auto-refreshes every 30s · generated " if live else "Snapshot generated "
     ) + _fmt(now_utc().isoformat())
     return _PAGE.format(
-        style=_STYLE, refresh=refresh, banner=banner,
-        count=len(active), cards=cards, ended=ended_html, rows=rows, footer=footer,
+        style=_STYLE, refresh=refresh, banner=banner, count=len(active),
+        cards=cards, ended=ended_html, notable=notable_html, rows=rows, footer=footer,
     )
 
 
@@ -164,6 +177,18 @@ def _event_card(e, reliefweb_links: list[str]) -> str:
       </div>
       <div class="chev">›</div>
     </div></a>"""
+
+
+def _notable_row(e) -> str:
+    level = AlertLevel(e["alert_level"])
+    color = _LEVEL_COLOR.get(level, "#666")
+    place = html.escape(e["title"] or e["country"] or "—")
+    return (
+        f'<tr><td><strong>M{e["peak_mag"]:.1f}</strong></td>'
+        f'<td><a href="/event/{e["id"]}">{place}</a></td>'
+        f'<td><span class="tag" style="background:{color}">{level.label}</span></td>'
+        f'<td class="ts">{_fmt(e["occurred_at"])}</td></tr>'
+    )
 
 
 def _update_row(u) -> str:
@@ -332,6 +357,7 @@ _STYLE = """
   .tag { color:#fff; font-size:.68rem; font-weight:700; padding:.1rem .4rem; border-radius:4px; }
   a { color:#2c6fbb; }
   .empty { opacity:.6; font-style:italic; }
+  .hint { font-size:.8rem; opacity:.65; margin:.2rem 0 .4rem; }
   footer { text-align:center; font-size:.75rem; opacity:.5; padding:1rem; }
 """
 
@@ -349,6 +375,7 @@ _PAGE = """<!doctype html>
   <h2>Current alerts ({count})</h2>
   {cards}
   {ended}
+  {notable}
   <h2>Recent updates</h2>
   <table><thead><tr><th>When</th><th>Change</th><th>Event</th></tr></thead>
   <tbody>

@@ -62,6 +62,9 @@ policy; raw payload archive for audit/replay.
   active ones under "Current alerts", recently-ended ones under "Earlier this
   week" (bounded to `HADR_RECENT_ALERT_DAYS`, default 7).
   [ADR-0009](docs/adr/0009-cold-start-backfill.md)
+- **Notable seismic activity**: awareness panel of past-week earthquakes
+  ≥ `HADR_NOTABLE_MAG_MIN` (default M6.0) shown even when assessed low-impact
+  (magnitude ≠ humanitarian impact; does not alert). Complements ADR-0001.
 - **Persistence**: SQLite (`events`, `source_records`, `notifications`) +
   raw payload archive on disk, written before parsing; keep everything
   indefinitely (KB-scale volumes; the archive is the replay-test corpus).

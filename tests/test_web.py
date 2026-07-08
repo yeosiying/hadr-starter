@@ -143,6 +143,29 @@ def test_recently_ended_alert_shows_in_past_week_section(store, notifier, config
     assert store.active_events() == []  # not in the current-active list
 
 
+def test_notable_panel_lists_low_impact_big_quake(store, notifier, config):
+    # A M6.2 that PAGER assessed GREEN: no humanitarian alert, but it should
+    # appear in the "Notable seismic activity" awareness panel.
+    t = _ms_days_ago(3)
+    _usgs(store, notifier, config,
+          [make_quake(eq_id="g1", mag=6.2, alert="green", time_ms=t, updated_ms=t,
+                      place="58 km W of Tobelo, Indonesia")])
+    assert store.active_events() == []          # correctly not an alert
+    html = render_page(store, config)
+    assert "Notable seismic activity — M6+ this week (1)" in html
+    assert "M6.2" in html
+    assert "Tobelo" in html
+
+
+def test_notable_panel_excludes_small_and_old(store, notifier, config):
+    t = _ms_days_ago(2)
+    old = _ms_days_ago(30)
+    _usgs(store, notifier, config, [make_quake(eq_id="s1", mag=5.4, alert="green", time_ms=t, updated_ms=t)])
+    _usgs(store, notifier, config, [make_quake(eq_id="o1", mag=6.5, alert="green", time_ms=old, updated_ms=old)])
+    assert store.notable_events(6.0, 7) == []   # M5.4 below floor, M6.5 too old
+    assert "Notable seismic activity" not in render_page(store, config)
+
+
 def test_old_ended_alert_excluded_from_past_week(store, notifier, config):
     t = _ms_days_ago(30)  # older than the 7-day window
     _usgs(store, notifier, config, [make_quake(eq_id="y", mag=6.5, time_ms=t, updated_ms=t)])

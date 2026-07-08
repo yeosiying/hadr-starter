@@ -128,8 +128,20 @@ Requested: include recent past events, bounded to 1 week.
   time-bounded — an ongoing crisis shows regardless of age).
 - Past-week events are *surfaced*, not re-notified: cold-start stays store-only
   (ADR-0009), so a reboot doesn't blast the week into the updates feed.
-- 2 new tests (56 total): recently-ended shows within the window; older-than-
-  window excluded.
+- 2 new tests: recently-ended shows within the window; older-than-window
+  excluded.
+
+### 2026-07-08 — "Notable seismic activity" awareness panel
+
+Situational awareness distinct from humanitarian alerting: a panel listing
+earthquakes ≥ `HADR_NOTABLE_MAG_MIN` (default M6.0) from the past week, **even
+when assessed low-impact** (PAGER green) and therefore not alerted. Verified
+live: the 3 offshore M6+ quakes this week (all green — not alerts) appear here,
+while "Current alerts" stays at 1. `store.notable_events` joins events to their
+peak source magnitude; the panel is a compact table, visually distinct from the
+alert cards, and does not generate notifications. This is a deliberate,
+documented complement to the impact-first policy (ADR-0001) — magnitude ≠
+impact, but a big quake is worth *seeing* regardless. 2 new tests (58 total).
 
 ## Open questions
 

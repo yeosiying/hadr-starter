@@ -68,9 +68,11 @@ policy; raw payload archive for audit/replay.
 - **Feed health**: if a feed hasn't succeeded within N× its cadence, one
   "degraded" notice + one recovery notice; exponential backoff on 429/5xx.
   [ADR-0010](docs/adr/0010-feed-health-staleness-alerts.md)
-- **ReliefWeb** sits behind a feature flag until the pre-approved `appname`
-  arrives; GDACS+USGS don't wait for it.
-  [ADR-0011](docs/adr/0011-reliefweb-feature-flag.md)
+- **ReliefWeb** enriches (never triggers): editorial confirmation + the GLIDE
+  join key, attached to existing events only. Sourced from the public **RSS**
+  feed now (no approval needed); the appname-gated JSON API is a later upgrade.
+  [ADR-0011](docs/adr/0011-reliefweb-feature-flag.md),
+  [ADR-0014](docs/adr/0014-reliefweb-rss-now-api-later.md)
 
 ## How it's built (decided)
 

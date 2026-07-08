@@ -50,10 +50,12 @@ recovery notice at N×cadence (N=3 default); backoff on 429/5xx. Silence must
 be distinguishable from calm.
 - ~~B. Silent retry + log only~~
 
-### Q8. ReliefWeb appname pending — MVP handling? `ANSWERED → ADR-0011`
-**Answer: A — Feature flag, don't block.** GDACS+USGS MVP; ReliefWeb code
-behind a config flag; request appname now in parallel (still a user-side
-TODO, see CONTEXT.md).
+### Q8. ReliefWeb appname pending — MVP handling? `ANSWERED → ADR-0011; REFINED → ADR-0014`
+**Answer: A — Feature flag, don't block.** GDACS+USGS MVP; request appname in
+parallel (still a user-side TODO). **Refined 2026-07-08 (ADR-0014):** the
+public RSS feed needs no approval and carries GLIDE, so ReliefWeb enrichment
+shipped now via RSS (enabled by default); the appname-gated JSON API is a
+later upgrade rather than a blocker.
 - ~~B. Wait for appname~~ · ~~C. Drop ReliefWeb~~
 
 ## Round 3 — Scope & quality bar

@@ -83,6 +83,33 @@ Aligned the repo with the artifact names in `README.md`.
 Still outstanding from the README's artifact list (future work, not in scope
 here): `system-view.html`, `goal.md`, and at least one skill.
 
+### 2026-07-08 — Slice 3: ReliefWeb enrichment via RSS (ADR-0011, ADR-0014)
+
+- **RSS, not the API**: the public `disasters/rss.xml` needs no appname and
+  carries GLIDE + country + title + date. Shipped enrichment on it now, enabled
+  by default; the appname JSON API is a documented upgrade (ADR-0014). Verified
+  live: 20/20 real disasters parsed with a GLIDE; the API returns 403 as
+  expected without an approved appname.
+- **`hadr/feeds/reliefweb.py`**: stdlib `xml.etree` RSS parse; GLIDE/country via
+  regex on the item description; hazard from GLIDE prefix or title keywords;
+  source_id = disaster-link slug. `claim_level` is always NONE — never triggers.
+- **Enrich-only pipeline path** (`process_records(enrich_only=True)`): attaches
+  to an existing event (GLIDE first, hazard-agnostic since GLIDE is unique; then
+  fuzzy geometry) or skips. No standalone events from ReliefWeb.
+  `find_event_by_glide` gained an optional hazard arg for the hazard-agnostic
+  join. Scheduler adds ReliefWeb only when enabled; `hadr replay --feed reliefweb`.
+- **Web**: active event cards show a "📰 ReliefWeb — confirmed" link when a
+  ReliefWeb source is attached.
+- 8 new tests (49 total) + ruff green.
+
+**Deviations / notes:**
+- RSS hazard inference is best-effort (e.g. GLIDE `ST` "severe storm" maps to
+  TC via title). Cosmetic only: matching is GLIDE-based and standalone
+  ReliefWeb events are skipped, so a mis-labelled hazard cannot cause a false
+  alert. The JSON API upgrade (ADR-0014) would give the real disaster type.
+- ReliefWeb records never produce notifications, so they don't appear in the
+  updates feed — only as the on-card enrichment badge. Intended (never triggers).
+
 ## Open questions
 
 - **Deletion detection**: slice 1 only retracts on an explicit

@@ -29,20 +29,28 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * EARTH_RADIUS_KM * asin(sqrt(a))
 
 
-def resolve_event_id(store: Store, rec: SourceRecord, config: Config) -> int:
-    """Return the canonical event id for `rec`, creating an event if needed."""
+def find_existing_event_id(store: Store, rec: SourceRecord, config: Config) -> int | None:
+    """Resolve `rec` to an existing canonical event without creating one:
+    known source id/alias, then GLIDE (hazard-agnostic), then fuzzy geometry.
+    Returns None if nothing matches."""
     existing = store.find_source_record(rec.source, rec.source_id)
     if existing is not None:
         return existing["event_id"]
 
     if rec.glide:
-        ev = store.find_event_by_glide(rec.glide, rec.hazard_type)
+        ev = store.find_event_by_glide(rec.glide)
         if ev is not None:
             return ev.id
 
     match = _fuzzy_match(store, rec, config)
-    if match is not None:
-        return match.id
+    return match.id if match is not None else None
+
+
+def resolve_event_id(store: Store, rec: SourceRecord, config: Config) -> int:
+    """Return the canonical event id for `rec`, creating an event if needed."""
+    found = find_existing_event_id(store, rec, config)
+    if found is not None:
+        return found
 
     ev = store.create_event(
         Event(

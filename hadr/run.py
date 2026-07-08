@@ -22,7 +22,7 @@ import httpx
 
 from .archive import archive_payload
 from .config import Config, load_config
-from .feeds import gdacs, usgs
+from .feeds import gdacs, reliefweb, usgs
 from .feeds.usgs import FetchResult
 from .notify import Notifier
 from .pipeline import process_payload
@@ -31,7 +31,13 @@ from .store import Store
 STALENESS_FAILURES = 3  # ~N x cadence before a degraded notice (ADR-0010)
 BACKOFF_CAP_SECONDS = 600
 
-PARSERS: dict[str, Callable] = {"usgs": usgs.parse, "gdacs": gdacs.parse}
+PARSERS: dict[str, Callable] = {
+    "usgs": usgs.parse,
+    "gdacs": gdacs.parse,
+    "reliefweb": reliefweb.parse,
+}
+# Feeds ingested enrich-only (attach to existing events, never create them).
+ENRICH_ONLY = {"reliefweb"}
 
 
 @dataclass
@@ -40,14 +46,23 @@ class FeedSpec:
     url: str
     interval: int
     parse: Callable
-    conditional: bool  # send If-Modified-Since (USGS yes, GDACS has no caching hdrs)
+    conditional: bool  # send If-Modified-Since (USGS yes; GDACS/ReliefWeb: no caching hdrs)
+    enrich_only: bool = False
 
 
 def _specs(config: Config) -> list[FeedSpec]:
-    return [
+    specs = [
         FeedSpec("usgs", config.usgs_feed_url, config.usgs_poll_seconds, usgs.parse, True),
         FeedSpec("gdacs", config.gdacs_feed_url, config.gdacs_poll_seconds, gdacs.parse, False),
     ]
+    if config.reliefweb_enabled:
+        specs.append(
+            FeedSpec(
+                "reliefweb", config.reliefweb_rss_url, config.reliefweb_poll_seconds,
+                reliefweb.parse, False, enrich_only=True,
+            )
+        )
+    return specs
 
 
 async def _afetch(
@@ -105,6 +120,7 @@ async def _poll_loop(
             sent = process_payload(
                 store, notifier, config, result.payload,
                 parse=spec.parse, raw_ref=str(raw), alert=first_alerts,
+                enrich_only=spec.enrich_only,
             )
             if not first_alerts:
                 print(f"[{spec.name}] cold-start backfill absorbed (store-only)")
@@ -174,7 +190,10 @@ def cmd_replay(config: Config, feed: str, files: list[str]) -> int:
     total = 0
     for f in files:
         payload = Path(f).read_bytes()
-        sent = process_payload(store, notifier, config, payload, parse=parse, raw_ref=f)
+        sent = process_payload(
+            store, notifier, config, payload, parse=parse, raw_ref=f,
+            enrich_only=feed in ENRICH_ONLY,
+        )
         print(f"[replay:{feed}] {f}: {len(sent)} notification(s)")
         total += len(sent)
     print(f"[replay] done — {total} notification(s) across {len(files)} file(s)")

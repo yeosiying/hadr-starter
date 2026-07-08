@@ -22,14 +22,26 @@ def process_records(
     records: list[SourceRecord],
     *,
     alert: bool = True,
+    enrich_only: bool = False,
 ) -> list[Notification]:
     """Run each source record through the pipeline. Returns notifications sent.
 
     `alert=False` stores state without notifying — the cold-start backfill path
-    (ADR-0009)."""
+    (ADR-0009).
+
+    `enrich_only=True` attaches a record to an *existing* canonical event or
+    skips it — it never creates a standalone event. This is the ReliefWeb path
+    (ADR-0001/0011): editorial confirmation only, so a ReliefWeb disaster with
+    no matching GDACS/USGS event is archived but adds no event to the store."""
     sent: list[Notification] = []
     for rec in records:
-        rec.event_id = dedup.resolve_event_id(store, rec, config)
+        if enrich_only:
+            event_id = dedup.find_existing_event_id(store, rec, config)
+            if event_id is None:
+                continue  # nothing to enrich; ReliefWeb never triggers on its own
+            rec.event_id = event_id
+        else:
+            rec.event_id = dedup.resolve_event_id(store, rec, config)
         prev_event = store.get_event(rec.event_id)
 
         srid, is_new_sr, prev_sr = store.upsert_source_record(rec)
@@ -77,7 +89,10 @@ def process_payload(
     parse,
     raw_ref: str | None = None,
     alert: bool = True,
+    enrich_only: bool = False,
 ) -> list[Notification]:
     """Parse a raw payload with the given feed `parse` function, then process."""
     records = parse(payload, raw_ref=raw_ref)
-    return process_records(store, notifier, config, records, alert=alert)
+    return process_records(
+        store, notifier, config, records, alert=alert, enrich_only=enrich_only
+    )

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import dataclasses
 
-from conftest import make_gdacs_event, make_payload, make_quake
+from conftest import make_gdacs_event, make_payload, make_quake, make_reliefweb_rss
 
-from hadr.feeds import gdacs, usgs
+from hadr.feeds import gdacs, reliefweb, usgs
 from hadr.pipeline import process_payload
 from hadr.web import render_page, write_dashboard
 
@@ -74,6 +74,26 @@ def test_live_page_autorefreshes_snapshot_does_not(store, config):
     assert "Auto-refreshes" in live
     assert 'http-equiv="refresh"' not in snap
     assert "Snapshot generated" in snap
+
+
+def test_reliefweb_enrichment_badge(store, notifier, config):
+    glide = "EQ-2026-000093-VEN"
+    _gdacs(store, notifier, config,
+           [make_gdacs_event(eventtype="EQ", episodealertlevel="Orange", glide=glide, name="Quake VEN")])
+    process_payload(
+        store, notifier, config,
+        make_reliefweb_rss([{"title": "Venezuela: Earthquakes", "slug": "eq-2026-000093-ven",
+                             "glide": glide, "country": "Venezuela"}]),
+        parse=reliefweb.parse, enrich_only=True,
+    )
+    html = render_page(store, config)
+    assert "ReliefWeb — confirmed" in html
+    assert "https://reliefweb.int/disaster/eq-2026-000093-ven" in html
+
+
+def test_no_reliefweb_badge_without_enrichment(store, notifier, config):
+    _gdacs(store, notifier, config, [make_gdacs_event(episodealertlevel="Red")])
+    assert "ReliefWeb — confirmed" not in render_page(store, config)
 
 
 def test_write_dashboard_creates_file(store, notifier, config, tmp_path):

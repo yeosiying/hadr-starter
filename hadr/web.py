@@ -81,7 +81,7 @@ def render_page(store: Store, config: Config, *, live: bool = True) -> str:
         banner = f'<div class="banner ok">✓ All feeds healthy — last success {html.escape(times)}</div>'
 
     if active:
-        cards = "\n".join(_event_card(e) for e in active)
+        cards = "\n".join(_event_card(e, _reliefweb_links(store, e["id"])) for e in active)
     else:
         cards = '<p class="empty">No active alerts. All monitored hazards are below threshold.</p>'
 
@@ -114,17 +114,34 @@ def write_dashboard(store: Store, config: Config) -> str:
     return str(path)
 
 
-def _event_card(e) -> str:
+def _reliefweb_links(store: Store, event_id: int) -> list[str]:
+    """ReliefWeb disaster URLs enriching this event (editorial confirmation)."""
+    return [
+        f"https://reliefweb.int/disaster/{r['source_id']}"
+        for r in store.source_records_for_event(event_id)
+        if r["source"] == "reliefweb"
+    ]
+
+
+def _event_card(e, reliefweb_links: list[str]) -> str:
     level = AlertLevel(e["alert_level"])
     color = _LEVEL_COLOR.get(level, "#666")
     emoji = HAZARD_EMOJI.get(e["hazard_type"], "⚠️")
     title = html.escape(e["title"] or "(unnamed event)")
     country = html.escape(e["country"] or "")
+    enrich = ""
+    if reliefweb_links:
+        href = html.escape(reliefweb_links[0])
+        enrich = (
+            f'<div class="enrich"><a href="{href}" target="_blank" rel="noopener">'
+            f"📰 ReliefWeb — confirmed</a></div>"
+        )
     return f"""<div class="card" style="border-left-color:{color}">
       <div class="lvl" style="background:{color}">{level.label}</div>
       <div class="body">
         <div class="ttl">{emoji} {e["hazard_type"]} — {title}</div>
         <div class="meta">{country}{' · ' if country else ''}updated {_fmt(e["updated_at"])}</div>
+        {enrich}
       </div>
     </div>"""
 
@@ -210,6 +227,8 @@ _PAGE = """<!doctype html>
   .card .body {{ padding:.6rem .8rem; }}
   .card .ttl {{ font-weight:600; }}
   .card .meta {{ font-size:.82rem; opacity:.7; margin-top:.15rem; }}
+  .card .enrich {{ font-size:.8rem; margin-top:.3rem; }}
+  .card .enrich a {{ color:#0b6; text-decoration:none; }}
   table {{ width:100%; border-collapse:collapse; font-size:.85rem; }}
   th, td {{ text-align:left; padding:.4rem .5rem; border-bottom:1px solid rgba(128,128,128,.2); vertical-align:top; }}
   .ts {{ white-space:nowrap; opacity:.7; }}

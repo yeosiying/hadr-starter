@@ -1,6 +1,12 @@
 # ADR-0011: ReliefWeb behind a feature flag; build doesn't wait for appname
 
-Date: 2026-07-08 · Status: Accepted
+Date: 2026-07-08 · Status: Accepted (refined by [ADR-0014](0014-reliefweb-rss-now-api-later.md))
+
+> Refined 2026-07-08: the premise that all of ReliefWeb is blocked on the
+> appname was wrong — the public RSS feed needs no approval and carries GLIDE.
+> ADR-0014 ships enrichment via RSS now and treats the appname-gated JSON API
+> as an upgrade. The core below (never triggers, just-another-source, request
+> the appname) still holds.
 
 ## Context
 

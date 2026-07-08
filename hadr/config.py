@@ -26,6 +26,13 @@ def _load_dotenv(path: str = ".env") -> None:
         os.environ.setdefault(key, value)
 
 
+def _bool(name: str, default: bool) -> bool:
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return val.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class Config:
     db_path: Path
@@ -37,6 +44,10 @@ class Config:
     usgs_poll_seconds: int
     gdacs_feed_url: str
     gdacs_poll_seconds: int
+    reliefweb_enabled: bool
+    reliefweb_rss_url: str
+    reliefweb_poll_seconds: int
+    reliefweb_appname: str  # reserved for the future JSON-API upgrade (ADR-0014)
     provisional_mag_min: float
     coalesce_minutes: int
     backfill_hours: int
@@ -62,6 +73,12 @@ def load_config(dotenv_path: str = ".env") -> Config:
             "https://www.gdacs.org/gdacsapi/api/events/geteventlist/EVENTS4APP",
         ),
         gdacs_poll_seconds=int(os.environ.get("HADR_GDACS_POLL_SECONDS", "360")),
+        reliefweb_enabled=_bool("HADR_RELIEFWEB_ENABLED", True),
+        reliefweb_rss_url=os.environ.get(
+            "HADR_RELIEFWEB_RSS_URL", "https://reliefweb.int/disasters/rss.xml"
+        ),
+        reliefweb_poll_seconds=int(os.environ.get("HADR_RELIEFWEB_POLL_SECONDS", "1800")),
+        reliefweb_appname=os.environ.get("HADR_RELIEFWEB_APPNAME", "").strip(),
         provisional_mag_min=float(os.environ.get("HADR_PROVISIONAL_MAG_MIN", "6.0")),
         coalesce_minutes=int(os.environ.get("HADR_COALESCE_MINUTES", "30")),
         backfill_hours=int(os.environ.get("HADR_BACKFILL_HOURS", "72")),

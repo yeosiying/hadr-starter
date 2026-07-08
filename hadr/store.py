@@ -150,11 +150,19 @@ class Store:
         row = self.conn.execute("SELECT * FROM events WHERE id=?", (event_id,)).fetchone()
         return _row_to_event(row) if row else None
 
-    def find_event_by_glide(self, glide: str, hazard_type: str) -> Event | None:
-        row = self.conn.execute(
-            "SELECT * FROM events WHERE glide=? AND hazard_type=?",
-            (glide, hazard_type),
-        ).fetchone()
+    def find_event_by_glide(self, glide: str, hazard_type: str | None = None) -> Event | None:
+        """Look up by GLIDE. GLIDE is globally unique per disaster, so hazard is
+        optional — omitting it lets a source join across feeds even if its
+        derived hazard code differs (ADR-0004, ReliefWeb enrichment)."""
+        if hazard_type is None:
+            row = self.conn.execute(
+                "SELECT * FROM events WHERE glide=?", (glide,)
+            ).fetchone()
+        else:
+            row = self.conn.execute(
+                "SELECT * FROM events WHERE glide=? AND hazard_type=?",
+                (glide, hazard_type),
+            ).fetchone()
         return _row_to_event(row) if row else None
 
     # --- source records ----------------------------------------------------

@@ -83,6 +83,34 @@ def make_gdacs_event(
     }
 
 
+def make_reliefweb_rss(items: list[dict], *, bom: bool = False) -> bytes:
+    """Build a disasters RSS payload. Each item: {title, slug, glide, country, pub}."""
+    parts = [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        "<rss version=\"2.0\"><channel><title>ReliefWeb - Disasters</title>",
+    ]
+    for it in items:
+        glide = it.get("glide", "")
+        country = it.get("country", "")
+        desc = (
+            f'&lt;div class="tag country"&gt;Affected country: {country}&lt;/div&gt;'
+            f'&lt;div class="tag glide"&gt;Glide: {glide}&lt;/div&gt;'
+            if glide or country
+            else "A disaster."
+        )
+        parts.append(
+            "<item>"
+            f"<title>{it['title']}</title>"
+            f"<link>https://reliefweb.int/disaster/{it['slug']}</link>"
+            f"<pubDate>{it.get('pub', 'Wed, 24 Jun 2026 00:00:00 +0000')}</pubDate>"
+            f"<description>{desc}</description>"
+            "</item>"
+        )
+    parts.append("</channel></rss>")
+    data = "".join(parts).encode("utf-8")
+    return b"\xef\xbb\xbf" + data if bom else data
+
+
 def make_payload(features: list[dict], *, bom: bool = False) -> bytes:
     doc = {
         "type": "FeatureCollection",
@@ -105,6 +133,10 @@ def config() -> Config:
         usgs_poll_seconds=60,
         gdacs_feed_url="http://example.invalid/gdacs.json",
         gdacs_poll_seconds=360,
+        reliefweb_enabled=True,
+        reliefweb_rss_url="http://example.invalid/rss.xml",
+        reliefweb_poll_seconds=1800,
+        reliefweb_appname="",
         provisional_mag_min=6.0,
         coalesce_minutes=30,
         backfill_hours=72,

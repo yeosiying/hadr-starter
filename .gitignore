@@ -2,6 +2,9 @@
 reports/
 *.sitrep.html
 
+# Event store + raw payload archive (ADR-0006): local runtime data, not source.
+data/
+
 # dashboard.html is the exception: it is the product, and it is committed.
 !dashboard.html
 

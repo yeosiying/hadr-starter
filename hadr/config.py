@@ -1,0 +1,75 @@
+"""Env-driven configuration (CLAUDE.md convention 3: config, not constants).
+
+Loads a `.env` file if present (no python-dotenv dependency — a tiny parser),
+then reads settings from the environment with sane defaults.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+
+def _load_dotenv(path: str = ".env") -> None:
+    """Populate os.environ from a .env file. Existing env vars win."""
+    p = Path(path)
+    if not p.exists():
+        return
+    for raw in p.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+def _bool(name: str, default: bool) -> bool:
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return val.strip().lower() in {"1", "true", "yes", "on"}
+
+
+@dataclass(frozen=True)
+class Config:
+    db_path: Path
+    archive_dir: Path
+    telegram_bot_token: str
+    telegram_chat_id: str
+    dry_run: bool
+    usgs_feed_url: str
+    usgs_poll_seconds: int
+    provisional_mag_min: float
+    coalesce_minutes: int
+    backfill_hours: int
+
+    @property
+    def telegram_configured(self) -> bool:
+        return bool(self.telegram_bot_token and self.telegram_chat_id)
+
+
+def load_config(dotenv_path: str = ".env") -> Config:
+    _load_dotenv(dotenv_path)
+    token = os.environ.get("HADR_TELEGRAM_BOT_TOKEN", "").strip()
+    chat_id = os.environ.get("HADR_TELEGRAM_CHAT_ID", "").strip()
+    # Dry-run defaults ON, and is forced ON when Telegram isn't configured
+    # (convention 4: never pretend to alert when we can't).
+    dry_run = _bool("HADR_DRY_RUN", True) or not (token and chat_id)
+    return Config(
+        db_path=Path(os.environ.get("HADR_DB_PATH", "data/hadr.sqlite3")),
+        archive_dir=Path(os.environ.get("HADR_ARCHIVE_DIR", "data/raw")),
+        telegram_bot_token=token,
+        telegram_chat_id=chat_id,
+        dry_run=dry_run,
+        usgs_feed_url=os.environ.get(
+            "HADR_USGS_FEED_URL",
+            "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+        ),
+        usgs_poll_seconds=int(os.environ.get("HADR_USGS_POLL_SECONDS", "60")),
+        provisional_mag_min=float(os.environ.get("HADR_PROVISIONAL_MAG_MIN", "6.0")),
+        coalesce_minutes=int(os.environ.get("HADR_COALESCE_MINUTES", "30")),
+        backfill_hours=int(os.environ.get("HADR_BACKFILL_HOURS", "72")),
+    )

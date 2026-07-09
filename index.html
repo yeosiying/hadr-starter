@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HADR Monitor — humanitarian-impact disaster alerts</title>
+<meta name="description" content="One page that tells you about a humanitarian-relevant disaster — earthquakes, cyclones, floods — without watching three websites. Alerts on modeled human impact, not raw magnitude. Silence you can trust.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --navy: #0b3d66;
+    --navy-2: #0f4d80;
+    --ink: #1a1a1a;
+    --muted: #5a6572;
+    --canvas: #f6f7f9;
+    --card: #ffffff;
+    --line: rgba(11, 61, 102, .14);
+    --accent: #d9531e;   /* GDACS "orange" — the trigger colour */
+    --ok: #1e7a3d;
+    --shadow: 0 1px 3px rgba(16, 34, 51, .09);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --navy: #0b3d66; --navy-2: #0a2c4a;
+      --ink: #e8e8e8; --muted: #9aa6b3;
+      --canvas: #14161a; --card: #1e2127;
+      --line: rgba(255, 255, 255, .10);
+      --accent: #f0703a; --ok: #6fce8f;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 52rem; margin: 0 auto; padding: 0 1.25rem; }
+
+  /* ---- Hero ---- */
+  header.hero {
+    background: linear-gradient(160deg, var(--navy), var(--navy-2));
+    color: #fff;
+    padding: 3.5rem 0 3rem;
+  }
+  .eyebrow {
+    font-size: .78rem; letter-spacing: .12em; text-transform: uppercase;
+    opacity: .72; margin: 0 0 .9rem;
+  }
+  header.hero h1 {
+    font-size: clamp(1.9rem, 5vw, 2.7rem);
+    line-height: 1.15; margin: 0 0 1rem; font-weight: 700;
+    letter-spacing: -.01em;
+  }
+  header.hero p.lede {
+    font-size: 1.15rem; max-width: 40rem; margin: 0; opacity: .93;
+  }
+  .feeds-line {
+    margin-top: 1.75rem; font-size: .82rem; opacity: .7;
+    display: flex; flex-wrap: wrap; gap: .4rem 1.1rem;
+  }
+  .feeds-line span::before { content: "●"; margin-right: .45rem; opacity: .6; }
+
+  /* ---- Sections ---- */
+  section { padding: 2.75rem 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: 0; }
+  h2 {
+    font-size: 1.35rem; margin: 0 0 .35rem; letter-spacing: -.01em;
+  }
+  .q {
+    font-size: .74rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin: 0 0 .5rem;
+  }
+  section p { margin: .7rem 0; }
+  .muted { color: var(--muted); }
+  strong { font-weight: 650; }
+
+  /* pull quote — the differentiator */
+  .pull {
+    border-left: 4px solid var(--accent);
+    padding: .3rem 0 .3rem 1.1rem;
+    margin: 1.4rem 0;
+    font-size: 1.12rem; font-weight: 600; line-height: 1.45;
+  }
+  .pull .small { display:block; font-size:.9rem; font-weight:400; color:var(--muted); margin-top:.4rem; }
+
+  /* feed pipeline cards */
+  .layers { display: grid; gap: .7rem; margin: 1.4rem 0 .3rem; }
+  .layer {
+    background: var(--card); border-radius: 10px; box-shadow: var(--shadow);
+    border-left: 5px solid var(--navy);
+    padding: .85rem 1rem; display: grid;
+    grid-template-columns: auto 1fr; gap: .2rem 1rem; align-items: baseline;
+  }
+  .layer .name { font-weight: 700; }
+  .layer .role { grid-column: 2; color: var(--muted); font-size: .92rem; }
+  .layer .badge {
+    grid-row: 1 / span 2; align-self: center;
+    font-size: .68rem; font-weight: 700; letter-spacing: .04em;
+    color: #fff; background: var(--navy); border-radius: 999px;
+    padding: .25rem .6rem; white-space: nowrap;
+  }
+  .layer.enrich { border-left-color: var(--muted); }
+  .layer.enrich .badge { background: var(--muted); }
+
+  /* two-column decision block */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 34rem) { .cols { grid-template-columns: 1fr; } }
+  .cols h3 { font-size: 1rem; margin: 0 0 .3rem; }
+
+  /* does-not-do list */
+  ul.nots { list-style: none; padding: 0; margin: 1rem 0 0; }
+  ul.nots li {
+    padding: .55rem 0 .55rem 1.9rem; position: relative;
+    border-top: 1px solid var(--line);
+  }
+  ul.nots li:first-child { border-top: 0; }
+  ul.nots li::before {
+    content: "✕"; position: absolute; left: 0; top: .55rem;
+    color: var(--accent); font-weight: 700;
+  }
+  ul.nots b { font-weight: 650; }
+
+  /* direction / roadmap */
+  ol.road { margin: 1rem 0 0; padding-left: 1.2rem; }
+  ol.road li { margin: .5rem 0; }
+
+  footer {
+    padding: 2.25rem 0 3rem; font-size: .85rem; color: var(--muted);
+  }
+  footer a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { footer a { color: var(--accent); } }
+  footer .links { margin-top: .5rem; display: flex; flex-wrap: wrap; gap: 1rem; }
+  code {
+    font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+    font-size: .88em; background: color-mix(in srgb, currentColor 10%, transparent);
+    padding: .1em .35em; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">🌐 HADR Monitor</p>
+    <h1>Know about a disaster that will hurt people — without watching three websites all day.</h1>
+    <p class="lede">
+      A single always-on service watches the world's disaster feeds, folds them into
+      one event per real-world crisis, and publishes what matters to a page you open
+      on demand. It alerts on <strong>modeled human impact</strong> — not raw magnitude —
+      and when it's quiet, you can trust the quiet.
+    </p>
+    <div class="feeds-line">
+      <span>GDACS — modeled impact</span>
+      <span>USGS — seismic detection</span>
+      <span>ReliefWeb — editorial confirmation</span>
+    </div>
+  </div>
+</header>
+
+<!-- 1. WHAT IS THIS -->
+<section>
+  <div class="wrap">
+    <p class="q">What is this</p>
+    <h2>A personal early-warning page for humanitarian disasters.</h2>
+    <p>
+      Three authoritative feeds — GDACS, USGS, and ReliefWeb — each report disasters
+      in their own format, on their own schedule, with their own idea of what counts.
+      None of them push; all of them have to be checked. HADR Monitor does the checking.
+      It polls each feed on its own cadence, archives every payload before it's read,
+      and merges the overlap so <strong>one real-world earthquake shows up once</strong> —
+      not three times under three names — with each source's claim visible underneath.
+    </p>
+    <p>
+      The result is a single local web page: current alerts at the top, recent changes
+      below, and a health banner that tells you when a feed has gone dark. You open it
+      when you want to know. There's nothing to log into and nothing to configure.
+    </p>
+  </div>
+</section>
+
+<!-- 2. WHY + DIRECTION -->
+<section>
+  <div class="wrap">
+    <p class="q">Why it works this way — and where it's headed</p>
+    <h2>Because magnitude is not the same thing as harm.</h2>
+    <p>
+      An M7.5 in the empty ocean is a non-event. An M6.2 under a crowded city is a
+      catastrophe. A raw seismic feed can't tell you which one just happened — it only
+      reports physics. So HADR Monitor doesn't trigger on physics. It triggers on
+      <strong>modeled impact</strong>: GDACS Orange/Red, USGS PAGER at yellow or above,
+      plus a fast provisional path for a large quake near people while the impact models
+      are still catching up.
+    </p>
+    <p class="pull">
+      The signal worth interrupting your day for is “this will affect people,” not
+      “the ground moved.”
+      <span class="small">That single conviction shapes every other decision — the trigger rules, the hazard scope, even what gets stored silently.</span>
+    </p>
+    <p>
+      The second conviction is that <strong>silence has to be trustworthy</strong>. A
+      monitoring tool that fails quietly is worse than no tool — you'd rely on it and be
+      blindsided. So a stalled feed never disappears into calm: it turns the page's
+      banner red. No alerts <em>and</em> no banner means genuinely nothing is happening.
+    </p>
+    <p class="muted">
+      <strong>Direction:</strong> the foundations are built to grow. ReliefWeb enrichment
+      lights up the moment its access approval lands (adding human-written confirmation and
+      GLIDE cross-references). Every payload is archived, so any past alert can be replayed
+      and any future parsing bug reproduced. The thresholds and windows are configuration,
+      not code — meant to be tuned against real traffic once the service has been running a
+      while. It's deliberately a foundation, not a finished dashboard.
+    </p>
+  </div>
+</section>
+
+<!-- The three feeds as a pipeline -->
+<section>
+  <div class="wrap">
+    <p class="q">How the pieces fit</p>
+    <h2>Three feeds, read as layers — not as rivals.</h2>
+    <p>
+      They aren't redundant copies of the same news. Each one answers a different
+      question, and later layers confirm or correct the earlier ones.
+    </p>
+    <div class="layers">
+      <div class="layer">
+        <span class="badge">minutes</span>
+        <span class="name">USGS — did the ground move?</span>
+        <span class="role">Fast seismic detection. Physical severity only, and its records change — quakes get revised, re-keyed, even deleted.</span>
+      </div>
+      <div class="layer">
+        <span class="badge">~25 min</span>
+        <span class="name">GDACS — will it hurt people?</span>
+        <span class="role">Modeled exposure × vulnerability across all hazard types. Green / Orange / Red is the number that decides whether you're alerted.</span>
+      </div>
+      <div class="layer enrich">
+        <span class="badge">hours–days</span>
+        <span class="name">ReliefWeb — what do humans say?</span>
+        <span class="role">Editorial confirmation and the GLIDE join key. Enriches an event that already exists — it never raises an alert on its own.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. WHO + WHAT DECISION -->
+<section>
+  <div class="wrap">
+    <p class="q">Who it's for</p>
+    <h2>One person who needs to notice, quickly, when the world needs help.</h2>
+    <div class="cols">
+      <div>
+        <h3>The reader</h3>
+        <p class="muted">
+          A single HADR-interested person — the owner. No team, no accounts, no
+          multi-tenancy. They visit a page on their own machine; a morning snapshot is
+          written for them at 08:30. It's tuned to personal-tool reliability, with the
+          one hard rule that silence must be honest.
+        </p>
+      </div>
+      <div>
+        <h3>The decision it speeds up</h3>
+        <p class="muted">
+          <strong>“Is anything happening right now that I should pay attention to?”</strong>
+          Instead of opening three sites, cross-referencing whether they're describing
+          the same event, and judging severity by eye, you glance at one page that has
+          already filtered for human impact and merged the duplicates. Seconds, not a
+          morning ritual.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. WHAT IT DOES NOT DO -->
+<section>
+  <div class="wrap">
+    <p class="q">What it deliberately does not do</p>
+    <h2>The scope it refuses — on purpose.</h2>
+    <p class="muted">Every one of these is a decision, not a gap. Staying small is how the part that matters stays trustworthy.</p>
+    <ul class="nots">
+      <li><b>It doesn't push.</b> No Telegram, email, or Slack. It's a page you pull, served on localhost — nothing public, nothing to secure.</li>
+      <li><b>It isn't multi-user.</b> One owner, one machine. No auth, no teams, no ops-center dashboards.</li>
+      <li><b>It doesn't rank the world by severity.</b> ReliefWeb attention isn't importance, and physical magnitude is never treated as impact.</li>
+      <li><b>It doesn't forecast or analyze.</b> It reports what the feeds assert — no predictions, no modeling of its own.</li>
+      <li><b>It stays quiet on some hazards.</b> Volcanoes and droughts are stored but never alerted; wildfires only at Red (they're most of the feed's volume).</li>
+      <li><b>It won't let ReliefWeb trigger an alert.</b> That feed confirms and enriches — it never fires.</li>
+      <li><b>It doesn't prune.</b> Everything is kept indefinitely; the archive is the audit trail and the replay-test corpus.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>HADR Monitor — a single-user humanitarian-impact disaster monitor. Run <code>hadr web</code> to open the live page.</p>
+    <div class="links">
+      <a href="prd.html">Product requirements</a>
+      <a href="system-view.html">System view</a>
+      <a href="dashboard.html">Sample dashboard</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

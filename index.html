@@ -16,7 +16,7 @@
     --card: #ffffff;
     --line: rgba(11, 61, 102, .14);
     --accent: #d9531e;   /* GDACS "orange" — the trigger colour */
-    --ok: #1e7a3d;
+    --green: #1e7a3d;
     --shadow: 0 1px 3px rgba(16, 34, 51, .09);
   }
   @media (prefers-color-scheme: dark) {
@@ -25,121 +25,122 @@
       --ink: #e8e8e8; --muted: #9aa6b3;
       --canvas: #14161a; --card: #1e2127;
       --line: rgba(255, 255, 255, .10);
-      --accent: #f0703a; --ok: #6fce8f;
+      --accent: #f0703a; --green: #6fce8f;
       --shadow: 0 1px 3px rgba(0, 0, 0, .4);
     }
   }
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.6;
+    line-height: 1.55;
     margin: 0;
     background: var(--canvas);
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
   }
   a { color: inherit; }
-  .wrap { max-width: 52rem; margin: 0 auto; padding: 0 1.25rem; }
+  .wrap { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem; }
 
   /* ---- Hero ---- */
   header.hero {
     background: linear-gradient(160deg, var(--navy), var(--navy-2));
-    color: #fff;
-    padding: 3.5rem 0 3rem;
+    color: #fff; padding: 3rem 0 2.5rem;
   }
-  .eyebrow {
-    font-size: .78rem; letter-spacing: .12em; text-transform: uppercase;
-    opacity: .72; margin: 0 0 .9rem;
-  }
+  .eyebrow { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; opacity: .72; margin: 0 0 .8rem; }
   header.hero h1 {
-    font-size: clamp(1.9rem, 5vw, 2.7rem);
-    line-height: 1.15; margin: 0 0 1rem; font-weight: 700;
-    letter-spacing: -.01em;
+    font-size: clamp(1.8rem, 5vw, 2.5rem); line-height: 1.12; margin: 0 0 .9rem;
+    font-weight: 700; letter-spacing: -.015em; max-width: 34rem;
   }
-  header.hero p.lede {
-    font-size: 1.15rem; max-width: 40rem; margin: 0; opacity: .93;
+  header.hero p.lede { font-size: 1.1rem; max-width: 38rem; margin: 0; opacity: .92; }
+
+  /* ---- Flow diagram in hero ---- */
+  .flow {
+    margin-top: 2rem; display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: .5rem;
   }
-  .feeds-line {
-    margin-top: 1.75rem; font-size: .82rem; opacity: .7;
-    display: flex; flex-wrap: wrap; gap: .4rem 1.1rem;
+  .flow .node {
+    background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.18);
+    border-radius: 10px; padding: .7rem .5rem; text-align: center;
   }
-  .feeds-line span::before { content: "●"; margin-right: .45rem; opacity: .6; }
+  .flow .node .ico { font-size: 1.3rem; line-height: 1; }
+  .flow .node .lbl { font-size: .72rem; margin-top: .3rem; opacity: .9; }
+  .flow .node.sources { display: grid; gap: .35rem; background: none; border: 0; padding: 0; }
+  .flow .node.sources > div {
+    background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.18);
+    border-radius: 8px; padding: .3rem .4rem; font-size: .74rem; font-weight: 600;
+  }
+  .flow .arrow { text-align: center; opacity: .55; font-size: 1.1rem; }
+  .flow .node.page { border-color: rgba(240,112,58,.6); }
+  @media (max-width: 40rem) {
+    .flow { grid-template-columns: 1fr; }
+    .flow .arrow { transform: rotate(90deg); padding: .1rem 0; }
+  }
 
   /* ---- Sections ---- */
-  section { padding: 2.75rem 0; border-bottom: 1px solid var(--line); }
+  section { padding: 2.4rem 0; border-bottom: 1px solid var(--line); }
   section:last-of-type { border-bottom: 0; }
-  h2 {
-    font-size: 1.35rem; margin: 0 0 .35rem; letter-spacing: -.01em;
-  }
-  .q {
-    font-size: .74rem; letter-spacing: .1em; text-transform: uppercase;
-    color: var(--accent); font-weight: 700; margin: 0 0 .5rem;
-  }
-  section p { margin: .7rem 0; }
+  h2 { font-size: 1.3rem; margin: 0 0 .3rem; letter-spacing: -.01em; }
+  .q { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 .5rem; }
+  section p { margin: .55rem 0; }
   .muted { color: var(--muted); }
-  strong { font-weight: 650; }
+  .lead { font-size: 1.05rem; }
 
-  /* pull quote — the differentiator */
-  .pull {
-    border-left: 4px solid var(--accent);
-    padding: .3rem 0 .3rem 1.1rem;
-    margin: 1.4rem 0;
-    font-size: 1.12rem; font-weight: 600; line-height: 1.45;
+  /* ---- Magnitude vs impact comparison ---- */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.3rem 0 .2rem; }
+  @media (max-width: 34rem) { .compare { grid-template-columns: 1fr; } }
+  .vs {
+    background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
+    padding: 1.1rem 1.1rem 1rem; border-top: 4px solid;
   }
-  .pull .small { display:block; font-size:.9rem; font-weight:400; color:var(--muted); margin-top:.4rem; }
+  .vs.silent { border-top-color: var(--green); }
+  .vs.alert  { border-top-color: var(--accent); }
+  .vs .case { font-size: 1.15rem; font-weight: 700; }
+  .vs .desc { font-size: .9rem; color: var(--muted); margin: .25rem 0 .8rem; }
+  .vs .verdict {
+    display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 700;
+    padding: .3rem .65rem; border-radius: 999px;
+  }
+  .vs.silent .verdict { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+  .vs.alert  .verdict { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+  .takeaway { font-size: 1.15rem; font-weight: 650; line-height: 1.4; margin: 1.3rem 0 0;
+    border-left: 4px solid var(--accent); padding-left: 1rem; }
 
-  /* feed pipeline cards */
-  .layers { display: grid; gap: .7rem; margin: 1.4rem 0 .3rem; }
+  /* ---- Feed layer cards ---- */
+  .layers { display: grid; gap: .6rem; margin: 1.2rem 0 0; }
   .layer {
     background: var(--card); border-radius: 10px; box-shadow: var(--shadow);
-    border-left: 5px solid var(--navy);
-    padding: .85rem 1rem; display: grid;
-    grid-template-columns: auto 1fr; gap: .2rem 1rem; align-items: baseline;
+    border-left: 5px solid var(--navy); padding: .8rem 1rem;
+    display: grid; grid-template-columns: 1.6rem 1fr auto; gap: .1rem .8rem; align-items: center;
   }
+  .layer .ico { font-size: 1.2rem; grid-row: 1 / span 2; }
   .layer .name { font-weight: 700; }
-  .layer .role { grid-column: 2; color: var(--muted); font-size: .92rem; }
+  .layer .role { grid-column: 2; color: var(--muted); font-size: .88rem; }
   .layer .badge {
-    grid-row: 1 / span 2; align-self: center;
-    font-size: .68rem; font-weight: 700; letter-spacing: .04em;
-    color: #fff; background: var(--navy); border-radius: 999px;
-    padding: .25rem .6rem; white-space: nowrap;
+    grid-row: 1 / span 2; font-size: .68rem; font-weight: 700; color: #fff;
+    background: var(--navy); border-radius: 999px; padding: .22rem .6rem; white-space: nowrap;
   }
   .layer.enrich { border-left-color: var(--muted); }
   .layer.enrich .badge { background: var(--muted); }
 
-  /* two-column decision block */
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  /* ---- Two-column ---- */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.3rem; margin-top: .5rem; }
   @media (max-width: 34rem) { .cols { grid-template-columns: 1fr; } }
-  .cols h3 { font-size: 1rem; margin: 0 0 .3rem; }
+  .cols h3 { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin: 0 0 .3rem; }
+  .cols p { margin: 0; font-size: .95rem; }
 
-  /* does-not-do list */
-  ul.nots { list-style: none; padding: 0; margin: 1rem 0 0; }
-  ul.nots li {
-    padding: .55rem 0 .55rem 1.9rem; position: relative;
-    border-top: 1px solid var(--line);
-  }
-  ul.nots li:first-child { border-top: 0; }
-  ul.nots li::before {
-    content: "✕"; position: absolute; left: 0; top: .55rem;
-    color: var(--accent); font-weight: 700;
-  }
-  ul.nots b { font-weight: 650; }
+  /* ---- Does-not-do grid ---- */
+  .nots { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .9rem; margin: 1rem 0 0; list-style: none; padding: 0; }
+  @media (max-width: 34rem) { .nots { grid-template-columns: 1fr; } }
+  .nots li { position: relative; padding: .3rem 0 .3rem 1.6rem; font-size: .92rem; }
+  .nots li::before { content: "✕"; position: absolute; left: 0; top: .3rem; color: var(--accent); font-weight: 700; }
+  .nots b { font-weight: 650; }
 
-  /* direction / roadmap */
-  ol.road { margin: 1rem 0 0; padding-left: 1.2rem; }
-  ol.road li { margin: .5rem 0; }
-
-  footer {
-    padding: 2.25rem 0 3rem; font-size: .85rem; color: var(--muted);
-  }
+  footer { padding: 2rem 0 3rem; font-size: .85rem; color: var(--muted); }
   footer a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--line); }
   @media (prefers-color-scheme: dark) { footer a { color: var(--accent); } }
   footer .links { margin-top: .5rem; display: flex; flex-wrap: wrap; gap: 1rem; }
-  code {
-    font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
-    font-size: .88em; background: color-mix(in srgb, currentColor 10%, transparent);
-    padding: .1em .35em; border-radius: 4px;
-  }
+  code { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; font-size: .88em;
+    background: color-mix(in srgb, currentColor 10%, transparent); padding: .1em .35em; border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -147,149 +148,137 @@
 <header class="hero">
   <div class="wrap">
     <p class="eyebrow">🌐 HADR Monitor</p>
-    <h1>Know about a disaster that will hurt people — without watching three websites all day.</h1>
+    <h1>Know about a disaster that will hurt people — without watching three websites.</h1>
     <p class="lede">
-      A single always-on service watches the world's disaster feeds, folds them into
-      one event per real-world crisis, and publishes what matters to a page you open
-      on demand. It alerts on <strong>modeled human impact</strong> — not raw magnitude —
-      and when it's quiet, you can trust the quiet.
+      One always-on service watches the world's disaster feeds, merges the overlap into
+      one event per crisis, and shows what matters on a page you open on demand.
     </p>
-    <div class="feeds-line">
-      <span>GDACS — modeled impact</span>
-      <span>USGS — seismic detection</span>
-      <span>ReliefWeb — editorial confirmation</span>
+
+    <div class="flow" role="img" aria-label="Three feeds are merged into one event and published to one page">
+      <div class="node sources">
+        <div>🌍 GDACS</div>
+        <div>📈 USGS</div>
+        <div>📰 ReliefWeb</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="ico">🔗</div><div class="lbl">merge duplicates<br>&amp; filter for impact</div></div>
+      <div class="arrow">→</div>
+      <div class="node page"><div class="ico">🖥️</div><div class="lbl">one page<br>you can trust</div></div>
     </div>
   </div>
 </header>
 
-<!-- 1. WHAT IS THIS -->
+<!-- 1. WHAT -->
 <section>
   <div class="wrap">
     <p class="q">What is this</p>
     <h2>A personal early-warning page for humanitarian disasters.</h2>
-    <p>
-      Three authoritative feeds — GDACS, USGS, and ReliefWeb — each report disasters
-      in their own format, on their own schedule, with their own idea of what counts.
-      None of them push; all of them have to be checked. HADR Monitor does the checking.
-      It polls each feed on its own cadence, archives every payload before it's read,
-      and merges the overlap so <strong>one real-world earthquake shows up once</strong> —
-      not three times under three names — with each source's claim visible underneath.
-    </p>
-    <p>
-      The result is a single local web page: current alerts at the top, recent changes
-      below, and a health banner that tells you when a feed has gone dark. You open it
-      when you want to know. There's nothing to log into and nothing to configure.
+    <p class="lead muted">
+      Three feeds — GDACS, USGS, ReliefWeb — each report disasters differently, on their own
+      schedule, and none of them push. HADR Monitor polls all three, archives every payload,
+      and folds the overlap so <strong>one earthquake shows up once</strong> — with each
+      source's claim underneath. You get current alerts, recent changes, and a health banner
+      on a single local page. Nothing to log into.
     </p>
   </div>
 </section>
 
-<!-- 2. WHY + DIRECTION -->
+<!-- 2. WHY -->
 <section>
   <div class="wrap">
     <p class="q">Why it works this way — and where it's headed</p>
-    <h2>Because magnitude is not the same thing as harm.</h2>
-    <p>
-      An M7.5 in the empty ocean is a non-event. An M6.2 under a crowded city is a
-      catastrophe. A raw seismic feed can't tell you which one just happened — it only
-      reports physics. So HADR Monitor doesn't trigger on physics. It triggers on
-      <strong>modeled impact</strong>: GDACS Orange/Red, USGS PAGER at yellow or above,
-      plus a fast provisional path for a large quake near people while the impact models
-      are still catching up.
-    </p>
-    <p class="pull">
-      The signal worth interrupting your day for is “this will affect people,” not
-      “the ground moved.”
-      <span class="small">That single conviction shapes every other decision — the trigger rules, the hazard scope, even what gets stored silently.</span>
-    </p>
-    <p>
-      The second conviction is that <strong>silence has to be trustworthy</strong>. A
-      monitoring tool that fails quietly is worse than no tool — you'd rely on it and be
-      blindsided. So a stalled feed never disappears into calm: it turns the page's
-      banner red. No alerts <em>and</em> no banner means genuinely nothing is happening.
+    <h2>Magnitude is not the same thing as harm.</h2>
+    <p class="muted">A raw seismic feed reports physics. It can't tell these two apart — HADR Monitor can:</p>
+
+    <div class="compare">
+      <div class="vs silent">
+        <div class="case">M7.5 · empty ocean</div>
+        <div class="desc">Huge on the Richter scale. No one near it.</div>
+        <span class="verdict">▪ stays silent</span>
+      </div>
+      <div class="vs alert">
+        <div class="case">M6.2 · under a city</div>
+        <div class="desc">Smaller quake. Millions exposed.</div>
+        <span class="verdict">▲ alerts you</span>
+      </div>
+    </div>
+
+    <p class="takeaway">It triggers on modeled human impact — “this will affect people” — not on “the ground moved.”</p>
+
+    <p class="muted" style="margin-top:1.2rem">
+      <strong>Trustworthy silence</strong> is the other rule: a stalled feed turns the banner
+      red instead of vanishing into calm. No alerts <em>and</em> no banner = genuinely nothing
+      happening.
     </p>
     <p class="muted">
-      <strong>Direction:</strong> the foundations are built to grow. ReliefWeb enrichment
-      lights up the moment its access approval lands (adding human-written confirmation and
-      GLIDE cross-references). Every payload is archived, so any past alert can be replayed
-      and any future parsing bug reproduced. The thresholds and windows are configuration,
-      not code — meant to be tuned against real traffic once the service has been running a
-      while. It's deliberately a foundation, not a finished dashboard.
+      <strong>Where it's headed:</strong> a foundation built to grow — ReliefWeb enrichment
+      switches on when its access is approved, the full payload archive makes any alert
+      replayable, and thresholds are config, not code, meant to be tuned against real traffic.
     </p>
   </div>
 </section>
 
-<!-- The three feeds as a pipeline -->
+<!-- Feed layers -->
 <section>
   <div class="wrap">
     <p class="q">How the pieces fit</p>
-    <h2>Three feeds, read as layers — not as rivals.</h2>
-    <p>
-      They aren't redundant copies of the same news. Each one answers a different
-      question, and later layers confirm or correct the earlier ones.
-    </p>
+    <h2>Three feeds, read as layers — not rivals.</h2>
     <div class="layers">
       <div class="layer">
-        <span class="badge">minutes</span>
+        <span class="ico">📈</span>
         <span class="name">USGS — did the ground move?</span>
-        <span class="role">Fast seismic detection. Physical severity only, and its records change — quakes get revised, re-keyed, even deleted.</span>
+        <span class="role">Fast seismic detection; physical severity only. Records get revised, re-keyed, deleted.</span>
+        <span class="badge">minutes</span>
       </div>
       <div class="layer">
-        <span class="badge">~25 min</span>
+        <span class="ico">🌍</span>
         <span class="name">GDACS — will it hurt people?</span>
-        <span class="role">Modeled exposure × vulnerability across all hazard types. Green / Orange / Red is the number that decides whether you're alerted.</span>
+        <span class="role">Modeled exposure × vulnerability. Green / Orange / Red decides whether you're alerted.</span>
+        <span class="badge">~25 min</span>
       </div>
       <div class="layer enrich">
-        <span class="badge">hours–days</span>
+        <span class="ico">📰</span>
         <span class="name">ReliefWeb — what do humans say?</span>
-        <span class="role">Editorial confirmation and the GLIDE join key. Enriches an event that already exists — it never raises an alert on its own.</span>
+        <span class="role">Editorial confirmation + the GLIDE join key. Enriches an event — never triggers one.</span>
+        <span class="badge">hours–days</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 3. WHO + WHAT DECISION -->
+<!-- 3. WHO -->
 <section>
   <div class="wrap">
     <p class="q">Who it's for</p>
-    <h2>One person who needs to notice, quickly, when the world needs help.</h2>
+    <h2>One person who needs to notice quickly.</h2>
     <div class="cols">
       <div>
         <h3>The reader</h3>
-        <p class="muted">
-          A single HADR-interested person — the owner. No team, no accounts, no
-          multi-tenancy. They visit a page on their own machine; a morning snapshot is
-          written for them at 08:30. It's tuned to personal-tool reliability, with the
-          one hard rule that silence must be honest.
-        </p>
+        <p class="muted">A single HADR-interested owner. No team, no accounts. They open a page on their own machine; a snapshot is written each morning at 08:30.</p>
       </div>
       <div>
         <h3>The decision it speeds up</h3>
-        <p class="muted">
-          <strong>“Is anything happening right now that I should pay attention to?”</strong>
-          Instead of opening three sites, cross-referencing whether they're describing
-          the same event, and judging severity by eye, you glance at one page that has
-          already filtered for human impact and merged the duplicates. Seconds, not a
-          morning ritual.
-        </p>
+        <p class="muted"><strong>“Is anything happening right now I should pay attention to?”</strong> One glance at a pre-filtered, de-duplicated page — not a three-site morning ritual.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 4. WHAT IT DOES NOT DO -->
+<!-- 4. NOT -->
 <section>
   <div class="wrap">
     <p class="q">What it deliberately does not do</p>
     <h2>The scope it refuses — on purpose.</h2>
-    <p class="muted">Every one of these is a decision, not a gap. Staying small is how the part that matters stays trustworthy.</p>
+    <p class="muted">Each is a decision. Staying small is how the part that matters stays trustworthy.</p>
     <ul class="nots">
-      <li><b>It doesn't push.</b> No Telegram, email, or Slack. It's a page you pull, served on localhost — nothing public, nothing to secure.</li>
-      <li><b>It isn't multi-user.</b> One owner, one machine. No auth, no teams, no ops-center dashboards.</li>
-      <li><b>It doesn't rank the world by severity.</b> ReliefWeb attention isn't importance, and physical magnitude is never treated as impact.</li>
-      <li><b>It doesn't forecast or analyze.</b> It reports what the feeds assert — no predictions, no modeling of its own.</li>
-      <li><b>It stays quiet on some hazards.</b> Volcanoes and droughts are stored but never alerted; wildfires only at Red (they're most of the feed's volume).</li>
-      <li><b>It won't let ReliefWeb trigger an alert.</b> That feed confirms and enriches — it never fires.</li>
-      <li><b>It doesn't prune.</b> Everything is kept indefinitely; the archive is the audit trail and the replay-test corpus.</li>
+      <li><b>No push.</b> A page you pull, on localhost.</li>
+      <li><b>Not multi-user.</b> One owner, no auth or teams.</li>
+      <li><b>No severity ranking.</b> Attention isn't importance.</li>
+      <li><b>No forecasting.</b> Reports what feeds assert.</li>
+      <li><b>Quiet hazards.</b> Volcanoes/droughts stored, not alerted; wildfires only at Red.</li>
+      <li><b>ReliefWeb never triggers.</b> It only confirms.</li>
+      <li><b>No pruning.</b> Everything kept as the replay corpus.</li>
+      <li><b>Nothing public.</b> No hosting, nothing to secure.</li>
     </ul>
   </div>
 </section>

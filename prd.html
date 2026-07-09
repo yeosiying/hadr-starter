@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRD — HADR Monitoring Agent</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
+    max-width: 46rem;
+    margin: 2.5rem auto;
+    padding: 0 1.25rem;
+  }
+  h1 { font-size: 1.6rem; border-bottom: 2px solid currentColor; padding-bottom: .4rem; }
+  h2 { font-size: 1.15rem; margin-top: 2rem; }
+  table { border-collapse: collapse; width: 100%; margin: .75rem 0; font-size: .95rem; }
+  th, td { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); padding: .45rem .6rem; text-align: left; vertical-align: top; }
+  th { background: color-mix(in srgb, currentColor 8%, transparent); }
+  code { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; font-size: .9em; background: color-mix(in srgb, currentColor 10%, transparent); padding: .1em .35em; border-radius: 4px; }
+  ol li, ul li { margin: .35rem 0; }
+  .meta { font-size: .85rem; opacity: .7; }
+</style>
+</head>
+<body>
+
+<h1>PRD — HADR Monitoring Agent</h1>
+<p class="meta">2026-07-08 · Decisions detailed in <code>CONTEXT.md</code> and <code>docs/adr/0001–0012</code></p>
+
+<h2>1. What is the goal?</h2>
+<p>
+Let one user (the repo owner) know about <strong>humanitarian-relevant disasters</strong>
+without watching three websites. A single Python service polls GDACS, USGS, and
+ReliefWeb, deduplicates them into canonical events, and publishes them to a
+local <strong>web page the owner visits</strong> — triggered by <em>modeled
+humanitarian impact</em> (GDACS Orange/Red, PAGER yellow+, provisional M≥6.0 near
+populated land), not raw physical severity. Silence must be trustworthy: a feed
+outage shows as a degraded banner on the page, so no-alerts means genuinely calm.
+</p>
+
+<h2>2. What are the three vertical slices?</h2>
+<ol>
+  <li><strong>USGS end-to-end</strong> — poll the summary feed → raw archive →
+      store → trigger (provisional M≥6.0 + PAGER) → alert visible on the page.
+      Ships the full dedup-ready schema from day one, proving the whole
+      pipeline with one source.</li>
+  <li><strong>GDACS + real trigger policy</strong> — GDACS RSS ingestion,
+      the full impact-based trigger (Orange/Red episode levels, hazard-scope
+      filtering), and cross-source dedup working for real.</li>
+  <li><strong>ReliefWeb enrichment</strong> — behind a feature flag, enabled
+      when the pre-approved <code>appname</code> arrives; adds editorial
+      confirmation and GLIDE cross-references. Never triggers alerts.</li>
+</ol>
+
+<h2>3. What is the data model?</h2>
+<p>SQLite, three tables, plus a raw payload archive on disk (every fetched payload written verbatim <em>before</em> parsing — audit trail and replay-test corpus).</p>
+<table>
+  <tr><th>Table</th><th>One row per</th><th>Key contents</th></tr>
+  <tr>
+    <td><code>events</code></td>
+    <td>Canonical real-world disaster</td>
+    <td>Hazard type, country/geometry, current alert level and trigger state, GLIDE (when known), timestamps</td>
+  </tr>
+  <tr>
+    <td><code>source_records</code></td>
+    <td>Per-source claim, keyed by (source, source ID)</td>
+    <td>Link to canonical event, latest parsed fields, update history, ID aliases (USGS re-keying), deletion flag</td>
+  </tr>
+  <tr>
+    <td><code>notifications</code></td>
+    <td>Update recorded (shown on the web page)</td>
+    <td>Event, transition type (new / escalation / confirmation / retraction), sent-at — feeds the page's updates list and drives the 30-min per-event coalescing</td>
+  </tr>
+</table>
+<p>
+Dedup maps source records to canonical events: GLIDE exact match first, fuzzy
+fallback (hazard + country + ±48 h + geometry), merging conservatively —
+a false merge is worse than a missed one.
+</p>
+
+<h2>4. What's out of scope?</h2>
+<ul>
+  <li>Multiple users, teams, ops centers — single owner, localhost only, no auth.</li>
+  <li>Push delivery (Telegram/email/Slack) and public hosting — the page is served locally and visited on demand.</li>
+  <li>Alerts for volcanoes and droughts (stored silently); wildfires below GDACS Red.</li>
+  <li>ReliefWeb as a trigger source — enrichment/confirmation only.</li>
+  <li>Rich content: maps, severity-history digests, per-source breakdowns on the page.</li>
+  <li>Global rate-cap / digest mode — per-event coalescing only, revisit with real storm data.</li>
+  <li>Serverless/cloud-cron deployment; anything beyond one systemd service on one always-on host.</li>
+  <li>Data pruning or retention policies — keep everything indefinitely.</li>
+</ul>
+
+</body>
+</html>

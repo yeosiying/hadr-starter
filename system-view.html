@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System View — HADR Monitor</title>
+<style>
+  :root { color-scheme: light dark; --line:#8888; --ink:#1a1a1a; --bg:#f6f7f9; --card:#fff; --accent:#0b3d66; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#e8e8e8; --bg:#14161a; --card:#1e2127; --accent:#5aa2e0; } }
+  body { font-family:-apple-system,Segoe UI,Roboto,sans-serif; line-height:1.55; color:var(--ink);
+         background:var(--bg); max-width:60rem; margin:0 auto; padding:2rem 1.25rem 4rem; }
+  h1 { font-size:1.5rem; border-bottom:2px solid var(--accent); padding-bottom:.4rem; }
+  h2 { font-size:1.1rem; margin-top:2.2rem; }
+  p.lede { opacity:.8; }
+  code { font-family:ui-monospace,Menlo,monospace; font-size:.9em; background:#8881; padding:.1em .35em; border-radius:4px; }
+  .flow { display:flex; flex-direction:column; gap:.4rem; margin:1.2rem 0; }
+  .row { display:flex; gap:.6rem; align-items:stretch; flex-wrap:wrap; }
+  .box { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:.6rem .8rem;
+         box-shadow:0 1px 3px #0001; flex:1; min-width:8rem; }
+  .box .t { font-weight:700; font-size:.9rem; }
+  .box .d { font-size:.78rem; opacity:.75; margin-top:.15rem; }
+  .box.feed { border-left:5px solid #2c6fbb; }
+  .box.core { border-left:5px solid #d35400; }
+  .box.store { border-left:5px solid #2e7d32; }
+  .box.out { border-left:5px solid #7b1fa2; }
+  .arrow { text-align:center; opacity:.5; font-size:1.1rem; }
+  table { border-collapse:collapse; width:100%; margin:.6rem 0; font-size:.9rem; }
+  th,td { border:1px solid var(--line); padding:.45rem .6rem; text-align:left; vertical-align:top; }
+  th { background:#8881; }
+  .scroll { overflow-x:auto; }
+  ul { padding-left:1.2rem; }
+  .meta { font-size:.82rem; opacity:.6; }
+</style>
+</head>
+<body>
+
+<h1>System View — HADR Monitor</h1>
+<p class="lede">How the pieces fit: three feeds are polled, archived, parsed, merged into
+canonical events, evaluated for humanitarian impact, and surfaced on a local web page.
+Data flows top to bottom. See <code>CONTEXT.md</code> and <code>docs/adr/</code> for the why.</p>
+
+<h2>Data flow</h2>
+<div class="flow">
+  <div class="row">
+    <div class="box feed"><div class="t">USGS summary</div><div class="d">GeoJSON, 60 s, If-Modified-Since. Earthquakes; PAGER + magnitude.</div></div>
+    <div class="box feed"><div class="t">GDACS EVENTS4APP</div><div class="d">GeoJSON, 6 min. All hazards; episode alert level = modeled impact.</div></div>
+    <div class="box feed"><div class="t">ReliefWeb RSS</div><div class="d">RSS, 30 min. Editorial confirmation + GLIDE. Never triggers.</div></div>
+  </div>
+  <div class="arrow">▼ &nbsp; one asyncio task per feed (<code>run.py</code>), per-feed cadence + backoff</div>
+  <div class="row">
+    <div class="box core"><div class="t">Archive (raw)</div><div class="d">Every payload written verbatim <em>before</em> parsing — audit + replay corpus.</div></div>
+    <div class="box core"><div class="t">Parse</div><div class="d"><code>feeds/*.py</code> → normalized <code>SourceRecord</code>s (BOM-safe, id aliases).</div></div>
+  </div>
+  <div class="arrow">▼</div>
+  <div class="row">
+    <div class="box core"><div class="t">Dedup</div><div class="d"><code>dedup.py</code>: known id/alias → GLIDE → fuzzy (hazard + ±48 h + ≤100 km). Conservative.</div></div>
+    <div class="box core"><div class="t">Triggers</div><div class="d"><code>triggers.py</code>: aggregate all source claims → level + transition. Hazard scope gate.</div></div>
+  </div>
+  <div class="arrow">▼ &nbsp; <code>pipeline.py</code> orchestrates; reads canonical events, never raw items</div>
+  <div class="row">
+    <div class="box store"><div class="t">SQLite store</div><div class="d"><code>store.py</code>: events · source_records (+aliases) · notifications · feed_state.</div></div>
+  </div>
+  <div class="arrow">▼</div>
+  <div class="row">
+    <div class="box out"><div class="t">Web page (pull)</div><div class="d"><code>web.py</code> · <code>hadr web</code>: health banner + active alerts + updates feed, live from SQLite.</div></div>
+    <div class="box out"><div class="t">dashboard.html</div><div class="d"><code>hadr dashboard</code>: static snapshot; regenerated 08:30 SGT by a systemd timer.</div></div>
+  </div>
+</div>
+
+<h2>Components</h2>
+<div class="scroll">
+<table>
+  <tr><th>Module</th><th>Responsibility</th><th>Key ADR</th></tr>
+  <tr><td><code>config.py</code></td><td>Env-driven settings; no inline magic numbers.</td><td>—</td></tr>
+  <tr><td><code>feeds/usgs·gdacs·reliefweb</code></td><td>Fetch (conditional where supported) + parse to <code>SourceRecord</code>. Separated so parsers replay from the archive.</td><td>0005, 0012</td></tr>
+  <tr><td><code>archive.py</code></td><td>Write raw payloads verbatim before parsing.</td><td>0006</td></tr>
+  <tr><td><code>dedup.py</code></td><td>Map a source record to its canonical event; create only for triggering feeds.</td><td>0004</td></tr>
+  <tr><td><code>triggers.py</code></td><td>Aggregate source claims → alert level; decide the notification transition; apply hazard scope.</td><td>0001, 0002, 0003</td></tr>
+  <tr><td><code>store.py</code></td><td>SQLite persistence + read views for the web app.</td><td>0006</td></tr>
+  <tr><td><code>notify.py</code></td><td>Record updates (delivery = recording); per-event coalescing.</td><td>0003, 0013</td></tr>
+  <tr><td><code>pipeline.py</code></td><td>parse → dedup → aggregate → trigger → notify. Feed-agnostic; enrich-only mode for ReliefWeb.</td><td>0004, 0011</td></tr>
+  <tr><td><code>web.py</code></td><td>Stdlib HTTP server + <code>render_page</code>; static dashboard writer.</td><td>0013</td></tr>
+  <tr><td><code>run.py</code></td><td>CLI: <code>run</code> (async poll loops), <code>web</code>, <code>dashboard</code>, <code>replay</code>.</td><td>0008</td></tr>
+</table>
+</div>
+
+<h2>Canonical data model</h2>
+<ul>
+  <li><strong>events</strong> — one row per real-world disaster; current alert level, provisional/retracted flags, GLIDE, representative time/geometry.</li>
+  <li><strong>source_records</strong> — each feed's claim about an event (+ <code>source_aliases</code> for USGS re-keying). Never overwritten across sources.</li>
+  <li><strong>notifications</strong> — every recorded transition (new/escalation/confirmation/retraction); the web updates feed + coalescing basis.</li>
+  <li><strong>feed_state</strong> — per-feed last success, failures, conditional-request validators; drives the staleness banner.</li>
+</ul>
+
+<h2>Invariants that hold the design together</h2>
+<ul>
+  <li><strong>Store raw before parsing.</strong> The archive is the source of truth for replay and audit.</li>
+  <li><strong>Events are mutable claims.</strong> Triggers read canonical events, never raw feed items; each source's claim is preserved.</li>
+  <li><strong>Impact over severity.</strong> GDACS episode level and PAGER drive alerts; magnitude only feeds the provisional fast path.</li>
+  <li><strong>Silence is trustworthy.</strong> A dead feed surfaces as a banner — it is never indistinguishable from calm.</li>
+  <li><strong>ReliefWeb never triggers.</strong> It only enriches events other feeds surfaced (GLIDE join).</li>
+</ul>
+
+<p class="meta">Deployment: one always-on host. <code>hadr run</code> (poller) and <code>hadr web</code> (page) as
+systemd services; a timer regenerates <code>dashboard.html</code> at 08:30 Asia/Singapore. See <code>deploy/</code>.</p>
+
+</body>
+</html>

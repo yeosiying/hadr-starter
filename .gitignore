@@ -2,12 +2,17 @@
 reports/
 *.sitrep.html
 
+# Event store + raw payload archive (ADR-0006): local runtime data, not source.
+data/
+
 # dashboard.html is the exception: it is the product, and it is committed.
 !dashboard.html
 
 # Secrets stay out of the repo and out of the agent's context.
 .env
 .env.*
+# ...but the example (no secrets) is documentation and must be committed.
+!.env.example
 
 # Language debris — extend for whichever toolchain you pick in CLAUDE.md.
 __pycache__/

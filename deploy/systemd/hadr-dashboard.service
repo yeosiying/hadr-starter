@@ -1,0 +1,10 @@
+[Unit]
+Description=HADR monitor — write the dashboard.html morning snapshot
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/hadr-monitor
+User=hadr
+ExecStart=/usr/bin/env uv run hadr dashboard
+# EnvironmentFile=/opt/hadr-monitor/.env
